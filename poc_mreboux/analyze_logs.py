@@ -16,6 +16,7 @@ from argparse import RawTextHelpFormatter
 import datetime
 import time
 import pandas as pd
+import re
 
 # répertoire courant
 script_dir = os.path.dirname(__file__)
@@ -85,14 +86,39 @@ Exemple : analyze_logs.py sec-proxy /var/logs/geor/security-proxy.2018-01-02.log
     logfile_size = round(os.stat(logfile).st_size / (1024*1024))
     print(f"file size is {logfile_size} MB")
 
-    log_frame = pd.read_csv(logfile, delimiter='€', encoding='utf-8', chunksize=10000, engine='python')
+    # Read the log file line by line and store matching lines in a list
+    matching_lines_geoserver = []
+    matching_lines_geowebcache = []
+    matching_lines_cadastrapp_api = []
 
+    with open(logfile, 'r') as file:
+        for line in file:
+            if re.search(r'(http|https):\/\/(.*)(\/geoserver)', line):
+                matching_lines_geoserver.append(line)
+            elif re.search(r'(http|https):\/\/(.*)(\/geowebcache)', line):
+                matching_lines_geowebcache.append(line)
+            elif re.search(r'(http|https):\/\/(.*)(\/cadastrapp)', line):
+                matching_lines_cadastrapp_api.append(line)
+
+    # Create a DataFrame from the list of matching lines
+    df_geoserver = pd.DataFrame(matching_lines_geoserver, columns=['Log Line'])
+    df_geowebcache = pd.DataFrame(matching_lines_geowebcache, columns=['Log Line'])
+    df_cadastrapp_api = pd.DataFrame(matching_lines_cadastrapp_api, columns=['Log Line'])
 
     print("done in " + getChrono(startTime, time.perf_counter()))
     print("")
 
-    # close the logfile
-    del log_frame
+    print(f"number of lines concerning geoserver : {df_geoserver.shape[0]}")
+    print(f"number of lines concerning geowebcache : {df_geowebcache.shape[0]}")
+    print(f"number of lines concerning cadastrapp API : {df_cadastrapp_api.shape[0]}")
+
+    # close the dataframes
+    del df_geoserver
+    del df_geowebcache
+    del df_cadastrapp_api
+
+    print("")
+    print("done in " + getChrono(startTime, time.perf_counter()))
 
     print("")
     print("END")
