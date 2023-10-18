@@ -4,7 +4,9 @@
 
 ## Metrics VS Analytics
 
+Les administrateurs techniques de plateformes ont besoin de métriques particulières afin de déterminer si la plate-forme technique est en bonne santé, ou pas, si un problème risque d'arriver dans x temps.
 
+Les administrateurs de contenu de plateformes ont eux besoin de statistiques sur des temporalités différentes : à la semaine, au moins, à l'année et cherchent plutôt à qualifier l'usage qui est fait de la plate-forme.
 
 
 ## Étapes
