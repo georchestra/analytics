@@ -1,10 +1,11 @@
+#!/usr/bin/python3
 
 import logging
 from logging.config import fileConfig
 
 from log_processors import core
 
-
+# Configure logging
 fileConfig("logging_config.ini")
 
 if __name__ == '__main__':
