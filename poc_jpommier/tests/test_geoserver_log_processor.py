@@ -57,5 +57,25 @@ class TestGetLayers(unittest.TestCase):
         self.assertEqual(geoserver.get_layers(layerparam), "whatever,states")
 
 
+class TestCollectInformation(unittest.TestCase):
+    def test_collect_simple_wms(self):
+        url = "http://geoserver:8080/geoserver/sf/wms?service=WMS&version=1.1.0&" \
+              "request=GetMap&layers=sf%3Abugsites&" \
+              "bbox=590223.4382724703%2C4914107.882513998%2C608462.4604629107%2C4920523.89081033" \
+              "&width=768&height=330&srs=EPSG%3A26713&styles=&format=application/openlayers"
+        expected_infos = {
+            "service": "wms",
+            "request": "getmap",
+            "format": "application/openlayers",
+            "workspace": "sf",
+            "layers": "bugsites",
+            "projection": "EPSG:26713",
+            "size": "768x330",
+            "tiled": "false",
+            "bbox": "590223.4382724703,4914107.882513998,608462.4604629107,4920523.89081033"
+        }
+        self.assertEqual(geoserver.collect_information(url), expected_infos)
+
+
 if __name__ == '__main__':
     unittest.main()
