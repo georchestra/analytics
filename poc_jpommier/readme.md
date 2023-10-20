@@ -53,14 +53,6 @@ python cli.py process-logs \
     --pguser georchestra --pgpassword georchestra \
     --pgtable analytics.logs \
     sample_data/traefik_georhena_sample_logs.log
-
-python cli.py process-logs  \
-    --pghost localhost --pgport 55432 --pgname georchestra \
-    --pguser georchestra --pgpassword georchestra \
-    --pgtable analytics.logs \
-    /home/jean/fast/dev/geOrchestra/analytics-experiments/docker/logs/traefik/access.log
-  
-   
 ```
 
 ## Run tests
