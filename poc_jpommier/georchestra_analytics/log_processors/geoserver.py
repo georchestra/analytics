@@ -1,38 +1,54 @@
 """\
 Process log files for the geoserver app
 """
-from apachelogs import LogParser, LogEntry
 import logging
 import re
 from urllib.parse import urlparse, parse_qs
 
-from . import path_from_url
+from .utils import path_from_url
+from .abstract import AbstractLogProcessor
 
 
-def collect_information(url: str):
-    url_parts = urlparse(url.lower())
-    url_params = parse_qs(url_parts.query)
-    try:
-        infos = {
-            "service": url_params["service"][0],
-            "request": url_params["request"][0],
-            "format": url_params["format"][0],
-            "workspace": get_workspaces(url_parts.path, url_params["layers"][0]),
-            "layers": get_layers(url_params["layers"][0]),
-            "projection": url_params["srs"][0].upper(),
-            "size": f"{url_params['width'][0]}x{url_params['height'][0]}",
-            "tiled": url_params.get("tiled", ["false"])[0],
-            "bbox": url_params['bbox'][0],
-        }
-        return infos
-    except KeyError as e:
-        logging.error(f"Key {e} not found in dictionary {url_params.__str__()}")
-        return None
+class GeoserverLogProcessor(AbstractLogProcessor):
+    @staticmethod
+    def collect_information(url: str) -> dict:
+        url_parts = urlparse(url.lower())
+        url_params = parse_qs(url_parts.query)
+        infos = {}
+        try:
+            for k,v in url_params.items():
+                match k:
+                    case "layers":
+                        infos["workspace"] = get_workspaces(url_parts.path, v[0])
+                        infos["layers"] = get_layers(v[0])
+                    case "height":
+                        pass
+                    case "width":
+                        if url_params.get("height", None):
+                            infos["size"] = v[0] + "x" + url_params.get("height")[0]
+                    case "srs":
+                        infos["projection"] = v[0].upper()
+                    case other:
+                        infos[k] = v[0]
+            # infos = {
+            #     "service": get_value_or_none(url_params, "service"),
+            #     "request": get_value_or_none(url_params, "request"),
+            #     "format": get_value_or_none(url_params, "format"),
+            #     "workspace": get_workspaces(url_parts.path, get_value_or_none(url_params, "layers")),
+            #     "layers": get_layers(get_value_or_none(url_params, "layers")),
+            #     "projection": get_value_or_none(url_params, "srs").upper(),
+            #     "size": {get_value_or_none(url_params, "width")} + "x" + {get_value_or_none(url_params, "height")},
+            #     "tiled": get_value_or_none(url_params, "tiled"),
+            #     "bbox": get_value_or_none(url_params, 'bbox'),
+            # }
+            return infos
+        except KeyError as e:
+            logging.error(f"Key {e} not found in dictionary {url_params.__str__()}")
+            return None
 
-
-def is_relevant(url: str):
-    path = path_from_url(url)
-    return "service=" in path.lower()
+    @staticmethod
+    def is_relevant(path: str) -> bool:
+        return "service=" in path.lower()
 
 
 def get_workspace_from_path_or_layerparam(path: str, layerparam: str) -> str:
@@ -61,7 +77,7 @@ def get_layers(layerparam: str) -> str:
     eventuality of a request asking for several layers at once
     """
     layers = (l.split(":")[-1] for l in layerparam.split(","))
-    return ",".join(layers) # comma separated list of layers if there are several
+    return ",".join(layers)  # comma separated list of layers if there are several
 
 
 def get_workspaces(path: str, layerparam: str) -> str:
@@ -69,4 +85,15 @@ def get_workspaces(path: str, layerparam: str) -> str:
     eventuality of a request asking for several layers at once
     """
     workspaces = (get_workspace_from_path_or_layerparam(path, l) for l in layerparam.split(","))
-    return ",".join(workspaces) # comma separated list of layers if there are several
+    return ",".join(workspaces)  # comma separated list of layers if there are several
+
+#
+# def get_value_or_none(url_params: dict, key: str):
+#     """
+#     url_params dict contains values that are lists. But the keys are not predictible, so they might be inexistent
+#     This is a small helper function to cleanly handle that situation
+#     :param url_params:
+#     :param key:
+#     :return:
+#     """
+#     return url_params.get(str, [None])[0]
