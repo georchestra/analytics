@@ -1,11 +1,12 @@
 #!/usr/bin/python3
+import time
 
 import click
 import logging
 from logging.config import fileConfig
 import psycopg2
 
-import log_processors
+from georchestra_analytics import log_processors
 
 # Configure logging
 fileConfig("logging_config.ini")
@@ -38,10 +39,13 @@ def process_logs(log_format:str, pghost: str, pgport: str, pgname: str, pgtable:
     The logs will be parsed using the log_format string. It uses a sensible default, but this might not match your config.
     See https://httpd.apache.org/docs/current/mod/mod_log_config.html for how to adapt it to your needs
     """
+    starttime = time.time()
+
     db_conn_string = f"postgresql://{pguser}:{pgpassword}@{pghost}:{pgport}/{pgname}"
     nb, csv = log_processors.process_log_file(source_file, log_format)
     logging.info(f"written {nb} log lines to file {csv}")
 
+    logging.info(f"{time.time() - starttime } since startup")
     # publish to DB using copy_from which seems to be among the most performant flows according to
     #       https://naysan.ca/2020/05/09/pandas-to-postgresql-using-psycopg2-bulk-insert-performance-benchmark/
     conn=None
@@ -74,6 +78,8 @@ def process_logs(log_format:str, pghost: str, pgport: str, pgname: str, pgtable:
         if conn is not None:
             conn.close()
             logging.debug('Database connection closed.')
+
+    logging.info(f"{time.time() - starttime } since startup")
 
 
 if __name__ == '__main__':

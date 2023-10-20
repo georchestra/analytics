@@ -20,7 +20,7 @@ class TestGetMetadataUuid(unittest.TestCase):
     def test_get_api_records_uuid(self):
         url = "http://localhost:80/geonetwork/srv/api/records/da165110-88fd-11da-a88f-000d939bc5d8"
         p = urlparse(url.lower()).path
-        self.assertEqual(geonetwork.get_metadata_uuid(p), "da165110-88fd-11da-a88f-000d939bc5d8")
+        self.assertEqual(geonetwork._get_metadata_uuid(p), "da165110-88fd-11da-a88f-000d939bc5d8")
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ class TestReadRequestLine(unittest.TestCase):
                            "&constraintlanguage=CQL_TEXT&typenames=gmd:MD_Metadata",
                            "geonetwork"
                            )
-        self.assertEqual(core.read_request_line(req), expected_result)
+        self.assertEqual(core._read_request_line(req), expected_result)
 
 
     def test_read_path(self):
@@ -27,7 +27,7 @@ class TestReadRequestLine(unittest.TestCase):
                            "&format=application/openlayers",
                            "geoserver"
                            )
-        self.assertEqual(core.read_request_line(req), expected_result)
+        self.assertEqual(core._read_request_line(req), expected_result)
 
 
 class TestCollectCommonData(unittest.TestCase):

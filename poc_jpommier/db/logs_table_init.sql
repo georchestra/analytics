@@ -1,4 +1,6 @@
-CREATE TABLE logs
+DROP SCHEMA IF EXISTS analytics CASCADE;
+CREATE SCHEMA analytics;
+CREATE TABLE analytics.logs
 (
     timestamptz   timestamp with time zone,
     username          VARCHAR(100),
@@ -12,4 +14,4 @@ CREATE TABLE logs
     response_time VARCHAR(100),
     response_size VARCHAR(100),
     http_code     VARCHAR(100)
-)
+);

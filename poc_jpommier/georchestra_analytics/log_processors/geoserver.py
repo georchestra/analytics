@@ -1,11 +1,10 @@
-"""\
+"""
 Process log files for the geoserver app
 """
 import logging
 import re
 from urllib.parse import urlparse, parse_qs
 
-from .utils import path_from_url
 from .abstract import AbstractLogProcessor
 
 
@@ -20,7 +19,7 @@ class GeoserverLogProcessor(AbstractLogProcessor):
                 match k:
                     case "layers":
                         infos["workspace"] = get_workspaces(url_parts.path, v[0])
-                        infos["layers"] = get_layers(v[0])
+                        infos["layers"] = _get_layers(v[0])
                     case "height":
                         pass
                     case "width":
@@ -30,17 +29,17 @@ class GeoserverLogProcessor(AbstractLogProcessor):
                         infos["projection"] = v[0].upper()
                     case other:
                         infos[k] = v[0]
-            # infos = {
-            #     "service": get_value_or_none(url_params, "service"),
-            #     "request": get_value_or_none(url_params, "request"),
-            #     "format": get_value_or_none(url_params, "format"),
-            #     "workspace": get_workspaces(url_parts.path, get_value_or_none(url_params, "layers")),
-            #     "layers": get_layers(get_value_or_none(url_params, "layers")),
-            #     "projection": get_value_or_none(url_params, "srs").upper(),
-            #     "size": {get_value_or_none(url_params, "width")} + "x" + {get_value_or_none(url_params, "height")},
-            #     "tiled": get_value_or_none(url_params, "tiled"),
-            #     "bbox": get_value_or_none(url_params, 'bbox'),
-            # }
+                    # infos = {
+                    #     "service": get_value_or_none(url_params, "service"),
+                    #     "request": get_value_or_none(url_params, "request"),
+                    #     "format": get_value_or_none(url_params, "format"),
+                    #     "workspace": get_workspaces(url_parts.path, get_value_or_none(url_params, "layers")),
+                    #     "layers": get_layers(get_value_or_none(url_params, "layers")),
+                    #     "projection": get_value_or_none(url_params, "srs").upper(),
+                    #     "size": {get_value_or_none(url_params, "width")} + "x" + {get_value_or_none(url_params, "height")},
+                    #     "tiled": get_value_or_none(url_params, "tiled"),
+                    #     "bbox": get_value_or_none(url_params, 'bbox'),
+                    # }
             return infos
         except KeyError as e:
             logging.error(f"Key {e} not found in dictionary {url_params.__str__()}")
@@ -51,7 +50,7 @@ class GeoserverLogProcessor(AbstractLogProcessor):
         return "service=" in path.lower()
 
 
-def get_workspace_from_path_or_layerparam(path: str, layerparam: str) -> str:
+def _get_workspace_from_path_or_layerparam(path: str, layerparam: str) -> str:
     """
     Geoserver allows to provide the workspace either in the layer name as a prefix or in the URl through
     "Virtual Services". We have to consider those 2 possibilities
@@ -72,7 +71,7 @@ def get_workspace_from_path_or_layerparam(path: str, layerparam: str) -> str:
             return ''
 
 
-def get_layers(layerparam: str) -> str:
+def _get_layers(layerparam: str) -> str:
     """ Extract the layer name from the possible syntaxes allowed by OGC. Needs to consider the
     eventuality of a request asking for several layers at once
     """
@@ -84,16 +83,5 @@ def get_workspaces(path: str, layerparam: str) -> str:
     """ Extract the workspace name from the possible syntaxes allowed by OGC. Needs to consider the
     eventuality of a request asking for several layers at once
     """
-    workspaces = (get_workspace_from_path_or_layerparam(path, l) for l in layerparam.split(","))
+    workspaces = (_get_workspace_from_path_or_layerparam(path, l) for l in layerparam.split(","))
     return ",".join(workspaces)  # comma separated list of layers if there are several
-
-#
-# def get_value_or_none(url_params: dict, key: str):
-#     """
-#     url_params dict contains values that are lists. But the keys are not predictible, so they might be inexistent
-#     This is a small helper function to cleanly handle that situation
-#     :param url_params:
-#     :param key:
-#     :return:
-#     """
-#     return url_params.get(str, [None])[0]

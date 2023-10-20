@@ -30,12 +30,12 @@ class TestGetWorkspace(unittest.TestCase):
     def test_get_from_layername(self):
         path = "/geoserver/sf/wfs"
         layerparam = "sf:whatever"
-        self.assertEqual(geoserver.get_workspace_from_path_or_layerparam(path, layerparam), "sf")
+        self.assertEqual(geoserver._get_workspace_from_path_or_layerparam(path, layerparam), "sf")
 
     def test_get_from_path(self):
         path = "/geoserver/sf/wfs"
         layerparam = "whatever"  # It can happen that the name is in the path only
-        self.assertEqual(geoserver.get_workspace_from_path_or_layerparam(path, layerparam), "sf")
+        self.assertEqual(geoserver._get_workspace_from_path_or_layerparam(path, layerparam), "sf")
 
     def test_get_multiple_from_layername(self):
         """ There can be several layers"""
@@ -53,11 +53,11 @@ class TestGetWorkspace(unittest.TestCase):
 class TestGetLayers(unittest.TestCase):
     def test_get_single_layer(self):
         layerparam = "sf:states"
-        self.assertEqual(geoserver.get_layers(layerparam), "states")
+        self.assertEqual(geoserver._get_layers(layerparam), "states")
 
     def test_get_multiple_layer(self):
         layerparam = "sf:whatever,topp:states"
-        self.assertEqual(geoserver.get_layers(layerparam), "whatever,states")
+        self.assertEqual(geoserver._get_layers(layerparam), "whatever,states")
 
 
 class TestCollectInformation(unittest.TestCase):

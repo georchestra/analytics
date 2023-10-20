@@ -1,11 +1,9 @@
-"""\
+"""
 Process log files for the geonetwork app
 """
-import logging
 import re
 from urllib.parse import urlparse, parse_qs
 
-from .utils import path_from_url
 from .abstract import AbstractLogProcessor
 
 valid_regexps = [
@@ -22,7 +20,7 @@ class GeonetworkLogProcessor(AbstractLogProcessor):
         url_params = parse_qs(url_parts.query)
         infos = {
             "query_type": "metadata_view",
-            "uuid": get_metadata_uuid(url_parts.path),
+            "uuid": _get_metadata_uuid(url_parts.path),
         }
         return infos
 
@@ -36,7 +34,7 @@ class GeonetworkLogProcessor(AbstractLogProcessor):
         return keep
 
 
-def get_metadata_uuid(path: str) -> str:
+def _get_metadata_uuid(path: str) -> str:
     """Extract metadata uuid from URL"""
     for pattern in valid_regexps:
         m = re.match(pattern, path)

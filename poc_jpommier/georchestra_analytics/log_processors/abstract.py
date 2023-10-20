@@ -22,7 +22,7 @@ class AbstractLogProcessor(ABC):
     def is_relevant(path: str) -> bool:
         """
         Determine whether a log line should be processed or dropped
-        :param path:
+        :param path: a URL, but with or without the http(s)://domain.name part
         :return:
         """
         pass
