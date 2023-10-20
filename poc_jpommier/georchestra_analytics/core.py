@@ -18,10 +18,6 @@ combined_log_format = r'^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?
 common_log_format_re = re.compile(common_log_format)
 combined_log_format_re = re.compile(combined_log_format)
 
-logformat_default = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" - \"%{app}n\" \"-\" %{ms}Tms"
-# logformat_default = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{counter}n \"%{app}n\" \"%{host}n\" %{ms}Tms"
-page_size = 1000
-
 
 def process_log_file(log_file_path: str,
                      log_format: str = combined_log_format,
