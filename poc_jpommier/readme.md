@@ -35,10 +35,10 @@ python cli.py process-logs sample_data/sp_sample_gs_logs.log
 # We don't provide database connection info, so it will stop at writing a CSV file. The path will be displayed by the script
 ```
 
-Process log data matching the default logformat:
+Process log data matching with a specific logformat:
 ```bash
 python cli.py process-logs \
-    --log_format "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{counter}n \"%{app}n\" \"%{host}n\" %{ms}Tms" \
+    --log_format '^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*) "-" "(?P<user_agent>[-0-9a-zA-Z\/\.: ();_]*)" (?P<misc>.*) (?P<response_time>[0-9]+)ms$' \
     sample_data/traefik_georhena_sample_logs.log
 ```
 
@@ -48,14 +48,13 @@ Process log data and push it into a DB table:
 docker compose -p georchestra_dev_analytics -f ./db/docker-compose.yml up -d
 
 python cli.py process-logs \
-    --log_format "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{counter}n \"%{app}n\" \"%{host}n\" %{ms}Tms" \
+    --log_format '^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*) "-" "(?P<user_agent>[-0-9a-zA-Z\/\.: ();_]*)" (?P<misc>.*) (?P<response_time>[0-9]+)ms$' \
     --pghost localhost --pgport 55432 --pgname georchestra \
     --pguser georchestra --pgpassword georchestra \
     --pgtable analytics.logs \
     sample_data/traefik_georhena_sample_logs.log
 
-python cli.py process-logs \
-    --log_format "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{counter}n \"%{app}n\" \"%{host}n\" %{ms}Tms" \
+python cli.py process-logs  \
     --pghost localhost --pgport 55432 --pgname georchestra \
     --pguser georchestra --pgpassword georchestra \
     --pgtable analytics.logs \

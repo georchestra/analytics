@@ -1,8 +1,6 @@
 import unittest
 
-import apachelogs
-
-from georchestra_analytics.log_processors import core
+from georchestra_analytics import core
 
 
 class TestReadRequestLine(unittest.TestCase):
@@ -35,15 +33,14 @@ class TestCollectCommonData(unittest.TestCase):
     Collecting common data only
     """
     def test_read_logline(self):
-        logformat = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" - \"%{app}n\" \"-\" %{ms}Tms"
+        logformat = core.combined_log_format_re
         logline = '192.168.1.70 - testadmin|Project Steering Committee|ROLE_SUPERUSER,ROLE_MAPSTORE_ADMIN,ROLE_USER,' \
                   'ROLE_ADMINISTRATOR,ROLE_GN_ADMIN,ROLE_EMAILPROXY [18/Oct/2023:17:36:06 +0000] ' \
                   '"GET /geoserver/nurc/wms?service=WMS&version=1.1.0&request=GetMap&layers=nurc%3AArc_Sample' \
                   '&bbox=-180.0%2C-90.0%2C180.0%2C90.0&width=768&height=384&srs=EPSG%3A4326&styles=' \
                   '&format=application/openlayers HTTP/1.1" 200 - "-" ' \
                   '"Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0" - "geoserver" "-" 18ms'
-        logentry = apachelogs.parse_lines(logformat, [logline])
-        data = core.collect_common_data(next(logentry))
+        data = core.collect_common_data(logline, logformat)
         expected_data = {
             'timestamptz': '2023-10-18T17:36:06+00:00',
              'username': 'testadmin',
@@ -58,18 +55,17 @@ class TestCollectCommonData(unittest.TestCase):
              'app_details': None,
              'response_time': 18,
              'response_size': None,
-             'http_code': 200
+             'status_code': 200
         }
         self.assertEqual(data, expected_data)
 
 
     def test_read_logline_traefik_georhena_format(self):
-        logformat = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{counter}n \"%{app}n\" \"%{host}n\" %{ms}Tms"
+        logformat = core.combined_log_format_re
         logline = '5.172.196.188 - - [01/Jun/2023:00:00:11 +0000] ' \
                   '"GET /geoserver/ows?service=wms&version=1.3.0&request=GetCapabilities HTTP/1.1" ' \
                   '200 19843 "-" "-" 1 "proxy@docker" "http://172.18.0.11:8080" 57ms'
-        logentry = apachelogs.parse_lines(logformat, [logline])
-        data = core.collect_common_data(next(logentry))
+        data = core.collect_common_data(logline, logformat)
         expected_data = {
             'timestamptz': '2023-06-01T00:00:11+00:00',
              'username': None,
@@ -82,22 +78,21 @@ class TestCollectCommonData(unittest.TestCase):
              'app_details': None,
              'response_time': 57,
              'response_size': 19843,
-             'http_code': 200
+             'status_code': 200
         }
         self.assertEqual(data, expected_data)
 
 
 class TestProcess(unittest.TestCase):
     def test_read_logline(self):
-        logformat = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" - \"%{app}n\" \"-\" %{ms}Tms"
+        logformat = core.combined_log_format_re
         logline = '192.168.1.70 - testadmin|Project Steering Committee|ROLE_SUPERUSER,ROLE_MAPSTORE_ADMIN,ROLE_USER,' \
                   'ROLE_ADMINISTRATOR,ROLE_GN_ADMIN,ROLE_EMAILPROXY [18/Oct/2023:17:36:06 +0000] ' \
                   '"GET /geoserver/nurc/wms?service=WMS&version=1.1.0&request=GetMap&layers=nurc%3AArc_Sample' \
                   '&bbox=-180.0%2C-90.0%2C180.0%2C90.0&width=768&height=384&srs=EPSG%3A4326&styles=' \
                   '&format=application/openlayers HTTP/1.1" 200 - "-" ' \
                   '"Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0" - "geoserver" "-" 18ms'
-        logentry = apachelogs.parse_lines(logformat, [logline])
-        data = core.process(next(logentry))
+        data = core.process(logline, logformat)
         expected_data = {
             'timestamptz': '2023-10-18T17:36:06+00:00',
              'username': 'testadmin',
@@ -123,18 +118,17 @@ class TestProcess(unittest.TestCase):
                 },
              'response_time': 18,
              'response_size': None,
-             'http_code': 200
+             'status_code': 200
         }
         self.assertEqual(data, expected_data)
 
 
     def test_read_logline_traefik_georhena_format(self):
-        logformat = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %{counter}n \"%{app}n\" \"%{host}n\" %{ms}Tms"
+        logformat = core.combined_log_format_re
         logline = '5.172.196.188 - - [01/Jun/2023:00:00:11 +0000] ' \
                   '"GET /geoserver/ows?service=wms&version=1.3.0&request=GetCapabilities HTTP/1.1" ' \
                   '200 19843 "-" "-" 1 "proxy@docker" "http://172.18.0.11:8080" 57ms'
-        logentry = apachelogs.parse_lines(logformat, [logline])
-        data = core.process(next(logentry))
+        data = core.process(logline, logformat)
         expected_data = {
             'timestamptz': '2023-06-01T00:00:11+00:00',
              'username': None,
@@ -151,7 +145,7 @@ class TestProcess(unittest.TestCase):
                 },
              'response_time': 57,
              'response_size': 19843,
-             'http_code': 200
+             'status_code': 200
         }
         self.assertEqual(data, expected_data)
 
