@@ -1,5 +1,5 @@
 
-# Prise de notes atelier analytics
+# Prise de notes atelier analytics du 18/10/2023
 
 
 ## Metrics VS Analytics
