@@ -165,13 +165,14 @@ CREATE INDEX ogc_services_idx_service ON analytics.ogc_services (service) ;
 CREATE INDEX ogc_services_idx_layer ON analytics.ogc_services (layer) ;
 ```
 
-On crée une hypertable :
+On crée une hypertable avec un intervalle de temps pour le stockage de 7 jours / 1 semaine :
 
 ```sql
 DROP TABLE IF EXISTS analytics.ogc_services;
 SELECT create_hypertable(
   'analytics.ogc_services',
-  'timestamp'
+  'timestamp',
+   chunk_time_interval => INTERVAL '1 week'
 );
 ```
 
