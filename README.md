@@ -12,7 +12,7 @@ Double constat partagé dans la communauté depuis quelques temps :
 * l'actuel module de traite que les données OGC, soit la consommation des données produites par GeoServer
 * c'est donc très partiel là où les administrateurs de plate-forme ont besoin d'aller jusqu'à des statistiques d'utilisation de fonctionnalités dans les applications et/ou leur pendant sur la consultation de services dans des APIs.
 
-Lire [la prise de notes](notes_code_sprint_juin_2023.md) complète réalisée lors de ce code sprint.
+Lire les notes contenues dans le répertoire 'notes'.
 
 
 
