@@ -1,4 +1,4 @@
-# geOrchestra analytics module (POC)
+# geOrchestra analytics module
 
 The geOrchestra statistics module analyzes logs provided by the Gateway module, processes them to extract information and constructs statistics.
 The data is stored in a database using the TimeScaleDB plugin. Visualization is provided by dashboards powered by SuperSet.
