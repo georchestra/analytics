@@ -1,14 +1,14 @@
 # geOrchestra analytics module
 
-The geOrchestra statistics module analyzes logs provided by the Gateway module, processes them to extract information and constructs statistics.
-The data is stored in a database using the TimeScaleDB plugin. Visualization is provided by dashboards powered by SuperSet.
+The geOrchestra statistics module analyzes logs provided by the [Gateway module](https://github.com/georchestra/georchestra-gateway), processes them to extract information and constructs statistics.
+The data is stored in a database using the [TimeScaleDB plugin for PostgreSQL](https://docs.timescale.com/). Visualization is provided by dashboards powered by [SuperSet](https://superset.apache.org/).
 
 Read the notes contained in the 'notes' directory.
 
 
 ## Principle
 
-The geOrchestra gateway is a unique point of entry in the geOrchestra SDI. It is a sort of reverse-proxy forwarding the requests to the different modules, depending on the request path / application. It also applies security rules.
+The [geOrchestra gateway](https://github.com/georchestra/georchestra-gateway) is a unique point of entry in the geOrchestra SDI. It is a sort of reverse-proxy forwarding the requests to the different modules, depending on the request path / application. It also applies security rules.
 
 The geOrchestra gateway is core as it is the only point that knows all about the identity of the authentified users and their requests.
 
