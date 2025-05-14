@@ -1,0 +1,24 @@
+{{- $webapp := .Values.timescaledb -}}
+{{- $webapp_storage := .Values.timescaledb.storage -}}
+{{- if $webapp.builtin -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "analytics.fullname" . }}-timescaledb-data
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ include "analytics.fullname" . }}-timescaledb
+    helm.sh/resource-policy: "keep"
+spec:
+  accessModes:
+  - ReadWriteOnce
+  {{- if $webapp_storage.storage_class_name }}
+  storageClassName: {{ $webapp_storage.storage_class_name }}
+  {{- end }}
+  {{- if $webapp_storage.pv_name }}
+  volumeName: {{ $webapp_storage.pv_name }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $webapp_storage.size }}
+{{- end }}

@@ -1,0 +1,70 @@
+{{- $webapp := .Values.cli -}}
+{{- if $webapp.enabled -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "analytics.fullname" . }}-cli-cronjob
+spec:
+  concurrencyPolicy: Forbid
+  schedule: {{ $webapp.schedule | quote }}
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name:  analytics-cli
+            image: {{ $webapp.image }}
+            imagePullPolicy: {{ $webapp.imagePullPolicy }}
+            # command:
+            #   - /bin/sh
+            #   - -c
+            #   - sleep 10000
+            command:
+              - analytics-cli
+              - buffer2db
+            env:
+              - name: TSDB_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: host
+              - name: TSDB_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: port
+              - name: TSDB_NAME
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: dbname
+              - name: TSDB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: user
+              - name: TSDB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: password
+              - name: TSDB_OTEL_TABLE
+                value: {{ .Values.vector.db_opentelemetry_table }}
+              - name: GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE
+                value: /etc/georchestra/analytics/cli.yaml
+            volumeMounts:
+            - name: cli-config
+              subPath: cli.yaml
+              mountPath: /etc/georchestra/analytics/cli.yaml
+          restartPolicy: Never
+          volumes:
+          - name: cli-config
+            configMap:
+              name: {{ include "analytics.fullname" . }}-cli-config
+{{- end }}

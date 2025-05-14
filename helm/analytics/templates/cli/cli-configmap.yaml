@@ -1,0 +1,16 @@
+{{- $webapp := .Values.cli -}}
+{{- if $webapp.enabled -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "analytics.fullname" . }}-cli-config
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ include "analytics.fullname" . }}-cli
+data:
+  cli.yaml: |-
+    {{- with $webapp.config }}
+      {{- . | nindent 4 }}
+    {{- end }}
+{{- end }}
