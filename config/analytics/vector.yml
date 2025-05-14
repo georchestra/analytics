@@ -14,7 +14,7 @@ sources:
         max_connection_age_secs: 300
 transforms:
   sp_access_logs_filter:
-    # Accept only access logsfrom Security proxy
+    # Accept only access logs from Security proxy
     type: filter
     inputs:
       - opentelemetry.logs
@@ -31,86 +31,15 @@ transforms:
     condition:
       type: "vrl"
       source: '.scope.name == "org.georchestra.gateway.accesslog" '
-      # source: match!(.scope.name, r'org.georchestra.*.accesslog') 
-
-  netty_logs_filter:
-    # Accept only access logs
-    type: filter
-    inputs:
-      - opentelemetry.logs
-    condition:
-      type: "vrl"
-      source: .scope.name == "reactor.netty.http.server.AccessLog"
-
-  netty_log_pre_reduce:
-    # Drop any fields that we won't be interested in when merging with accesslogs
-    type: "remap"
-    inputs:
-      - netty_logs_filter
-    source: |
-      del(.attributes)
-      del(.dropped_attributes_count)
-      del(.flags)
-      del(.observed_timestamp)
-      del(.resources)
-      del(.severity_number)
-      del(.severity_text)
-      del(.source_type)
-      del(.timestamp)
-      del(.trace_id)
-
-  gateway_log_pre_reduce:
-    # Drop any fields that we won't be interested in when merging with accesslogs
-    type: "remap"
-    inputs:
-      - gw_access_logs_filter
-    source: |
-      del(.message)
-
-  gw_log_reduce:
-    # Combine GW access logs and matching netty accesslogs
-    type: reduce
-    inputs:
-      - netty_log_pre_reduce
-      - gateway_log_pre_reduce
-    expire_after_ms: 500
-    flush_period_ms: 100
-    group_by:
-      - span_id
-    merge_strategies: 
-      message: concat_newline
-      scope.name: concat
-
-  log_reformat:
-    type: "remap"
-    inputs:
-      # - opentelemetry.logs
-      - gw_log_reduce
-      - sp_access_logs_filter
-    source: |
-      .scope.source_type= .source_type
-      .scope.span_id= .span_id
-      .scope.trace_id= .trace_id
-      .scope.severity_text= .severity_text
-      .scope.severity_number= .severity_number
-      .scope.observed_timestamp= .observed_timestamp
-      del(.dropped_attributes_count)
-      del(.flags)
-      del(.source_type)
-      del(.trace_id)
-      del(.severity_text)
-      del(.severity_number)
-      del(.observed_timestamp)
+      # source: match!(.scope.name, r'org.georchestra.*.accesslog')
 
 sinks:
   console:
     type: console
     # https://vector.dev/docs/reference/configuration/sinks/console/
     inputs:
-      # - log_reformat
-      # - netty_logs_filter
       - gw_access_logs_filter
-      # - gw_log_reduce
+      # - sp_access_logs_filter
       # - opentelemetry.logs
     target: stdout
     encoding:

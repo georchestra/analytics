@@ -92,9 +92,9 @@ ALTER MATERIALIZED VIEW geoserver_summary_monthly set (timescaledb.compress = tr
 SELECT add_compression_policy('geoserver_summary_monthly', compress_after=>'7 months'::interval);
 
 
-CALL refresh_continuous_aggregate('analytics.geoserver_summary_hourly', '2021-05-01', '2025-05-12');
-CALL refresh_continuous_aggregate('analytics.geoserver_summary_daily', '2021-05-01', '2025-05-12');
-CALL refresh_continuous_aggregate('analytics.geoserver_summary_monthly', '2021-05-01', '2025-05-12');
+CALL refresh_continuous_aggregate('analytics.geoserver_summary_hourly', '2021-05-01', '2025-05-14');
+CALL refresh_continuous_aggregate('analytics.geoserver_summary_daily', '2021-05-01', '2025-05-14');
+CALL refresh_continuous_aggregate('analytics.geoserver_summary_monthly', '2021-05-01', '2025-05-14');
 
 
 -- Watch retention policies state (see https://docs.timescale.com/api/latest/data-retention/add_retention_policy/#add_retention_policy):
