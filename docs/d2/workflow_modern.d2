@@ -1,0 +1,22 @@
+title: |md
+  # Standard workflow
+| {near: top-center}
+
+proxy:  geOrchestra Security Proxy / Gateway
+
+
+tsdb: PostgreSQL TimescaleDB {
+  shape: cylinder
+
+  buffer: Buffer table
+  hyper: Hypertable (storage)
+  views: Exploitation views
+
+  hyper -- views
+}
+
+superset: Apache Superset
+
+proxy -> tsdb.buffer: log4j2/logback JDBC
+tsdb.buffer -> tsdb.hyper: Python script + cron
+tsdb <- superset

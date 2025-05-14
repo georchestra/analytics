@@ -171,3 +171,8 @@ cython_debug/
 .AppleDouble
 .LSOverride
 
+
+# MkDocs documentation
+venv_mkdocs/
+.venv_mkdocs/
+docs/tableofcontent.md

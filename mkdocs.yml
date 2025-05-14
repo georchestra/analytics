@@ -1,0 +1,139 @@
+site_name: geOrchestra analytics
+
+repo_url: https://github.com/georchestra/analytics
+repo_name: georchestra-analytics
+
+docs_dir: docs
+edit_uri: edit/main/docs/
+
+
+theme:
+  language: en
+  features:
+    # - toc.integrate
+    - navigation.indexes
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.footer
+  logo: images/georchestra-logo-white.svg
+  favicon: images/favicon.ico
+  name: material
+
+extra:
+  version:
+    provider: mike
+  generator: false
+  social:
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:psc@georchestra.org
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/georchestra
+    - icon: fontawesome/brands/github
+      link: https://github.com/georchestra
+    - icon: fontawesome/brands/google
+      link: https://groups.google.com/g/georchestra?hl=en
+    - icon: fontawesome/brands/dev
+      link: https://groups.google.com/group/georchestra-dev?hl=fr
+    - icon: fontawesome/regular/comments
+      link: https://matrix.to/#/#georchestra:osgeo.org
+
+
+copyright: '© 2025 - geOrchestra'
+
+extra_css:
+    - css/extra.css
+
+extra_javascript:
+    - assets/custom_versions.js
+
+# 1st and 2nd level tree structure to manage here
+# These entries match the documentation template
+# Here do not put .fr or .en in the name of the markdown: the i18n plugin manage this for you
+
+nav:
+    - Home: index.md
+    - User guide:
+        - Index: user_guide/index.md
+        - Getting started: user_guide/getting_started.md
+        - Global overview: user_guide/global_overview.md
+        - Menus and toolbars: user_guide/tools.md
+        - Syntax help: user_guide/syntax_help.md
+    - Technical guides:
+        - Index: technical_guides/index.md
+        - Administration:
+            - technical_guides/administration/index.md
+            - technical_guides/administration/one_page.md
+        - Installation:
+            - technical_guides/installation/index.md
+            - technical_guides/installation/presentation.md
+            - technical_guides/installation/prerequisites.md
+            - technical_guides/installation/preparation.md
+            - technical_guides/installation/installation.md
+            - Configuration:
+              - technical_guides/installation/configuration/index.md
+              - technical_guides/installation/configuration/gateway.md
+              - technical_guides/installation/configuration/security_proxy.md
+              - technical_guides/installation/configuration/vector.md
+              - technical_guides/installation/configuration/timescaledb.md
+              - technical_guides/installation/configuration/analytics-cli.md
+              - technical_guides/installation/configuration/superset.md
+            - technical_guides/installation/troubleshooting.md
+            # - technical_guides/installation/tests.md
+        - Contribute:
+            - technical_guides/contribute/index.md
+            - technical_guides/contribute/feature_matrix.md
+            - technical_guides/contribute/api.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - callouts
+  # - toc-md:
+      # toc_page_title: Contents
+      # toc_page_description: Summary of the section
+      # header_level: 3
+      # pickup_description_meta: false
+      # pickup_description_class: false
+      # output_path: tableofcontent.md
+      # output_log: true
+      # ignore_page_pattern: index.md
+      # remove_navigation_page_pattern: index.md
+      # template_dir_path: custom_template
+  - exclude:
+      glob:
+        - tableofcontent.md
+  - i18n:
+        docs_structure: suffix
+        fallback_to_default: true
+        reconfigure_material: true
+        reconfigure_search: true
+        languages:
+          - locale: en
+            default: true
+            name: English
+            build: true
+            site_name: "Documentation template for a geOrchestra component"
+          # - locale: fr
+          #   name: Français
+          #   build: true
+          #   site_name: "Template pour la documentation d'un composant geOrchestra"
+          #   nav_translations:
+          #     Home: "Accueil"
+          #     User guide: "Guide utilisateur"
+          #     Index: "Sommaire"
+          #     Getting started: "Prendre en main"
+          #     Global overview: "Vue globale"
+          #     Menus and toolbars: "Barres ou menus d''outils"
+          #     Syntax help: "Aide syntaxe"
+          #     Technical guides: "Guides techniques"
+          #     Administration: "Administrer"
+          #     Installation: "Installer"
+          #     Contribute: "Développer"
+
+
+  - git-revision-date-localized:
+      enable_creation_date: true

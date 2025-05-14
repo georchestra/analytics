@@ -1,0 +1,45 @@
+direction: down
+
+title: |md
+  # Conservative workflow
+| {near: top-center}
+
+explanation: |md
+
+  # Access log files
+  The Security Proxy/Gateway are the place where most of the information is available\
+  (user information, http requests, response time and success) so this is the first \
+  place to look at.
+  It is also possible to read access logs from a classic reverse proxy like Apache, \
+  nginx etc. The only difference is that you won't get the user information (id, roles, org). \
+  But it makes sense to feed the database with historic access logs collected over time \
+  to preseed the database with as much information as possible. \
+  The log files are expected to be rotated and processed once rotated, so that the processing happens
+| {
+  near: center-left
+}
+
+
+proxy:  geOrchestra  gateway / security proxy
+
+logfiles: Log files {
+  accesslogs: File-based access logs
+  logarchive: Archive accesslog files
+}
+
+
+tsdb: PostgreSQL TimescaleDB {
+  shape: cylinder
+
+  hyper: Hypertable (storage)
+  views: Exploitation views
+
+  hyper -- views
+}
+
+superset: Apache Superset
+
+proxy -> logfiles.accesslogs
+logfiles.accesslogs -> tsdb.hyper: Python script + cron
+logfiles.logarchive -> tsdb.hyper: Python script, one-time run
+tsdb <- superset
