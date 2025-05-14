@@ -6,6 +6,13 @@ hide:
 
 # Collecting and exploring usage analytics
 
+
+!!! note "Note"
+
+    This documentation is still a work in progress. It documents the analytics _next generation_ module, in development in 2025.
+
+
+
 ## Why ?
 
 Most websites and ecommerce sites collect usage data to analyze the visitors demeanor around their site. It tells you what pages are viewed most often, how much time they spent on it etc.It provides valuable information about  website.
