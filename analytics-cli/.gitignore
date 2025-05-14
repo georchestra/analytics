@@ -53,3 +53,5 @@ README.rst
 .venv*/
 .conda*/
 .python-version
+
+tmp
