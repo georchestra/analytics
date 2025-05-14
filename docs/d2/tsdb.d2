@@ -1,0 +1,35 @@
+direction: down
+
+accesslogs: Access logs {
+  near: top-left
+  shape: cloud
+}
+
+
+tsdb: PostgreSQL TimescaleDB {
+  shape: cylinder
+  # label.near: bottom-center
+  label.near: top-right
+  buffer: Buffer table
+  hyper: Usage_data Hypertable (storage)
+  views: Exploitation views (continuous aggregation) {
+    direction: down
+    grid-columns: 2
+    grid-rows: 3
+    ogc_daily_global: OGC daily global stats
+    ogc_daily_per_layer: OGC daily layer usage
+    ogc_monthly: OGC monthly usage
+    all_global_stats_daily: Daily global stats
+    all_global_stats_monthly: Monthly global stats, aggregated
+    etc: ...
+  }
+
+  hyper -> views
+}
+
+superset: Dataviz on Superset
+
+accesslogs -> tsdb.buffer: Using OpenTelemetry
+tsdb.buffer -> tsdb.hyper: Python script + cron
+
+superset -> tsdb.views

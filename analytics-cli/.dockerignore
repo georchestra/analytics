@@ -1,0 +1,9 @@
+.git
+.venv
+.github
+.idea
+.tox
+build/
+dist/
+tests/
+tmp/

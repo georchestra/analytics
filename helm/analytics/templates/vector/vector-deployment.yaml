@@ -1,0 +1,98 @@
+{{- $webapp := .Values.vector -}}
+{{- if $webapp.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "analytics.fullname" . }}-vector
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ include "analytics.fullname" . }}-vector
+spec:
+  replicas: {{ $webapp.replicaCount | default 1 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "analytics.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ include "analytics.fullname" . }}-vector
+  template:
+    metadata:
+      labels:
+        {{- include "analytics.selectorLabels" . | nindent 8 }}
+        org.georchestra.service/name: {{ include "analytics.fullname" . }}-vector
+        app.kubernetes.io/component: {{ include "analytics.fullname" . }}-vector
+    spec:
+      {{- if $webapp.registry_secret }}
+      imagePullSecrets:
+      - name: {{ $webapp.registry_secret }}
+      {{- end }}
+      nodeSelector:
+        "kubernetes.io/os": linux
+        {{- with .Values.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: analytics-vector
+          image: "{{ $webapp.docker_image }}"
+          imagePullPolicy: {{ $webapp.imagePullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: http
+              containerPort: 4318
+              protocol: TCP
+            - name: api
+              containerPort: 8686
+              protocol: TCP
+          env:
+            - name: TSDB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: host
+            - name: TSDB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: port
+            - name: TSDB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: dbname
+            - name: TSDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: user
+            - name: TSDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: password
+            - name: TSDB_OTEL_TABLE
+              value: {{ $webapp.db_opentelemetry_table }}
+          volumeMounts:
+            - mountPath: /etc/vector/vector.yaml
+              name: vector-config
+              subPath: vector.yaml
+              readOnly: true
+            {{- if $webapp.extraVolumeMounts }}
+              {{- toYaml $webapp.extraVolumeMounts | nindent 10 }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml  $webapp.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml  $webapp.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml  $webapp.resources | nindent 12 }}
+      volumes:
+      - name: vector-config
+        configMap:
+          name: {{ include "analytics.fullname" . }}-vector-config
+      {{- if $webapp.extraVolumes }}
+          {{- toYaml $webapp.extraVolumes | nindent 6 }}
+      {{- end }}
+
+{{- end }}

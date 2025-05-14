@@ -1,0 +1,41 @@
+direction: down
+
+title: |md
+  # Manual workflow
+| {near: top-center}
+
+
+
+proxy:  geOrchestra  gateway / security proxy
+proxy.style.opacity: 0.2
+
+logfiles: Log files {
+  accesslogs: File-based access logs
+  accesslogs.style.opacity: 0.2
+  logarchive: Archive accesslog files
+}
+
+
+tsdb: PostgreSQL TimescaleDB {
+  shape: cylinder
+
+  hyper: Hypertable (storage)
+  views: Exploitation views
+
+  hyper -- views
+}
+
+superset: Apache Superset
+
+proxy -> logfiles.accesslogs {
+  style: {
+    opacity: 0.2
+  }
+}
+logfiles.accesslogs -> tsdb.hyper: Python script + cron {
+  style: {
+    opacity: 0.2
+  }
+}
+logfiles.logarchive -> tsdb.hyper: Python script, one-time run
+tsdb <- superset

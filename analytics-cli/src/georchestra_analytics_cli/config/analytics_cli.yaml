@@ -1,0 +1,76 @@
+title: "Analytics CLI config file"
+
+performance:
+  # Publish in DB by batches
+  batch_size: 10000
+
+# apps_mapping is a dict of app_path:app_name, used to determine which *software* is running for a given path.
+# Apps which path match the app name don't have to be listed.
+# App names have to match the name used in this project's app_processors subpackage.
+#
+# e.g. let's suppose that we have a geonetwork instance running on /catalog. It can't be automatically inferred
+# that this is a geonetwork instance. We'll have an apps_mapping entry like this:
+#
+# apps_mapping:
+#   catalog: geonetwork
+#
+# But we're not declaring the geoserver path, because it already corresponds to the geoserver app name.
+#
+apps_mapping: {}
+
+database:
+  drivername: "postgresql"
+  host: "localhost"
+  port: "5433"
+  database: "analytics"
+#  schema: analytics
+  username: "tsdb"
+  password: !ENV "${GOA_DB_PASSWORD:secret}"
+
+parsers:
+  opentelemetry:
+    text_message_parser:
+      enable: false
+      regex: r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
+
+  text_message:
+    regex: r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
+
+app_processors:
+  fallback_on_generic: false
+  geoserver:
+    infer_is_tiled: true
+    infer_is_download: true
+    download_formats:
+      vector:
+        # List of formats with a human-friendly label. Keys (format name) should match the WFS Getfeature supported
+        # outputFormats but *in lowercase*
+        shape-zip: "Shapefile"
+        "application/json": "JSON"
+        csv: "CSV"
+        excel: "Excel"
+        excel2007: "Excel"
+
+
+
+metrics:
+  enabled: false
+
+logging:
+  version: 1
+  root:
+    handlers: [console]
+    level: DEBUG
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: default
+  formatters:
+    default:
+      format: '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  loggers:
+    georchestra_analytics_cli:
+      level: DEBUG
+    __main__:
+      level: DEBUG

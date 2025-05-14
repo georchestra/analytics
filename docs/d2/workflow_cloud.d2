@@ -1,0 +1,29 @@
+direction: down
+
+title: |md
+  # Workflow cloud k8s / large infrastructure
+| {near: top-center}
+
+grid-rows: 3
+proxy:  geOrchestra  gateway
+
+vector: OpenTelemetry handler (vector)
+
+tsdb: PostgreSQL TimescaleDB {
+  shape: cylinder
+  label.near: bottom-center
+  grid-rows: 3
+  buffer: Buffer table
+  hyper: Hypertable (storage)
+  views: Exploitation views
+
+
+  hyper -- views
+}
+
+superset: Apache Superset
+
+proxy -> vector: Collect OpenTelemetry log data
+vector -> tsdb.buffer: publish the usage data \n in a buffer DB table \n
+tsdb.buffer -> tsdb.hyper: Python script + cron
+tsdb <- superset

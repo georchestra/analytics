@@ -1,0 +1,183 @@
+# Default values for analytics.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+nodeSelector: {}
+
+timescaledb:
+  builtin: true
+  replicaCount: 1
+  imagePullPolicy: Always
+  docker_image: timescale/timescaledb-ha:pg17
+  auth:
+    # existingSecret: will_replace_below_auth_settings
+    database: analytics
+    username: tsdb
+    password: secret
+    port: "5432"
+  storage:  
+    # Some cloud providers automatically create & assign PVs to PVCs
+    # some other need to create a PV first ; if so, then you can
+    # uncomment the `pv_name` entries below.
+    # pv_name: timescaledb_data
+    size: 100Gi
+    # storage_class_name: default
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  livenessProbe:
+    # tcpSocket:
+    #   port: 5432
+    exec:
+      command: ["bash", "-c", "psql -w -U $POSTGRES_USER -d $POSTGRES_DB SELECT 1"]
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  readinessProbe:
+    exec:
+      command: ["bash", "-c", "psql -w -U $POSTGRES_USER -d $POSTGRES_DB SELECT 1"]
+    initialDelaySeconds: 15
+    periodSeconds: 10
+
+vector:
+  enabled: true
+  replicaCount: 1
+  docker_image: timberio/vector:0.46.X-alpine
+  imagePullPolicy: Always
+  # Name of the table to which Vector will write
+  db_opentelemetry_table: "analytics.opentelemetry_buffer"
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8686
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8686
+    initialDelaySeconds: 15
+    periodSeconds: 10
+
+  # Config for vector (vector.yml)
+  config: |-
+    api:
+      enabled: true
+      address: 0.0.0.0:8686
+    sources:
+      opentelemetry:
+        type: opentelemetry
+        grpc:
+          address: 0.0.0.0:4317
+        http:
+          address: 0.0.0.0:4318
+          headers: []
+          keepalive:
+            max_connection_age_jitter_factor: 0.1
+            max_connection_age_secs: 300
+    transforms:
+      gw_access_logs_filter:
+        # Accept only access logs from Gateway
+        type: filter
+        inputs:
+          - opentelemetry.logs
+        condition:
+          type: "vrl"
+          source: '.scope.name == "org.georchestra.gateway.accesslog" '
+    sinks:
+      console:
+        type: console
+        # https://vector.dev/docs/reference/configuration/sinks/console/
+        inputs:
+          - gw_access_logs_filter
+          # - opentelemetry.logs
+        target: stdout
+        encoding:
+          codec: json
+      tsdb:
+        type: postgres
+        # https://vector.dev/docs/reference/configuration/sinks/postgres/
+        inputs:
+          - gw_access_logs_filter
+        endpoint: "postgres://${TSDB_USER}:${TSDB_PASSWORD}@${TSDB_HOST}:${TSDB_PORT}/${TSDB_NAME}"
+        table: "${TSDB_OTEL_TABLE:-analytics.opentelemetry_buffer}"
+        pool_size: 5
+
+# Python CLI cronjob
+cli:
+  enabled: true
+  schedule: "0 01 * * *"
+  image: georchestra/analytics-cli:latest
+  imagePullPolicy: Always
+  # Configure the CLI app
+  config: |-
+    performance:
+      # Publish in DB by batches
+      batch_size: 10000
+
+    apps_mapping: {}
+
+    database:
+      drivername: "postgresql"
+      host: !ENV "${TSDB_HOST:localhost}"
+      port: !ENV "${TSDB_PORT:5433}"
+      database: !ENV "${TSDB_NAME:analytics}"
+      username: !ENV "${TSDB_USER:tsdb}"
+      password: !ENV "${TSDB_PASSWORD:secret}"
+
+    parsers:
+      opentelemetry:
+        text_message_parser:
+          enable: false
+          regex: r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
+      text_message:
+        regex: '^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*) \"-\" \"(?P<user_agent>[-0-9a-zA-Z\/\.: ();_]*)\" (?P<misc>.*) (?P<response_time>[0-9]+)ms$'
+
+    metrics:
+      enabled: true
+    #  metrics_file_path: /tmp/analytics.prom
+    #  pushgateway_url: localhost:9091
+
+    logging:
+      version: 1
+      root:
+        handlers: [console]
+        level: DEBUG
+      handlers:
+        console:
+          class: logging.StreamHandler
+          formatter: default
+      formatters:
+        default:
+          format: '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'
+          datefmt: '%Y-%m-%d %H:%M:%S'
+      loggers:
+        georchestra_analytics_cli:
+          level: DEBUG
+        __main__:
+          level: DEBUG
+
+
+

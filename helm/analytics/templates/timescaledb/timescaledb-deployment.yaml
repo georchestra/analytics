@@ -1,0 +1,86 @@
+{{- $webapp := .Values.timescaledb -}}
+{{- if $webapp.builtin -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "analytics.fullname" . }}-timescaledb
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ include "analytics.fullname" . }}-timescaledb
+spec:
+  replicas: {{ $webapp.replicaCount | default 1  }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "analytics.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ include "analytics.fullname" . }}-timescaledb
+  template:
+    metadata:
+      labels:
+        {{- include "analytics.selectorLabels" . | nindent 8 }}
+        org.georchestra.service/name: {{ include "analytics.fullname" . }}-timescaledb
+        app.kubernetes.io/component: {{ include "analytics.fullname" . }}-timescaledb
+    spec:
+      {{- if $webapp.registry_secret }}
+      imagePullSecrets:
+      - name: {{ $webapp.registry_secret }}
+      {{- end }}
+      nodeSelector:
+        "kubernetes.io/os": linux
+        {{- with .Values.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: analytics-timescaledb
+          image: "{{ $webapp.docker_image }}"
+          imagePullPolicy: {{ $webapp.imagePullPolicy }}
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $webapp.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: dbname
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $webapp.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $webapp.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: password
+          volumeMounts:
+            - mountPath: /home/postgres/pgdata
+              name: timescaledb-data
+            - mountPath: /docker-entrypoint-initdb.d/100_analytics_init.sql
+              name: timescaledb-initscripts
+              subPath: 100_analytics_init.sql
+            - mountPath: /docker-entrypoint-initdb.d/101_analytics_geoserver_views.sql
+              name: timescaledb-initscripts
+              subPath: 101_analytics_geoserver_views.sql
+            {{- if $webapp.extraVolumeMounts }}
+              {{- toYaml $webapp.extraVolumeMounts | nindent 10 }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml  $webapp.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml  $webapp.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml  $webapp.resources | nindent 12 }}
+      volumes:
+      - name: timescaledb-data
+        persistentVolumeClaim:
+          claimName: {{ include "analytics.fullname" . }}-timescaledb-data
+      - name: timescaledb-initscripts
+        configMap:
+          name: {{ include "analytics.fullname" . }}-timescaledb-initscripts
+      {{- if $webapp.extraVolumes }}
+          {{- toYaml $webapp.extraVolumes | nindent 6 }}
+      {{- end }}
+
+{{- end }}
