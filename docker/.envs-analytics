@@ -1,0 +1,13 @@
+# Envs for analytics stack
+
+TSDB_HOST=timescaledb
+TSDB_PORT=5432
+TSDB_NAME=analytics
+TSDB_USER=tsdb
+TSDB_PASSWORD=password
+TSDB_OTEL_TABLE=analytics.opentelemetry_buffer
+
+
+POSTGRES_DB=${TSDB_NAME}
+POSTGRES_USER=${TSDB_USER}
+POSTGRES_PASSWORD=${TSDB_PASSWORD}

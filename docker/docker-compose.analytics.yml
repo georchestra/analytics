@@ -1,0 +1,42 @@
+
+volumes:
+  timescaledb_data:
+  
+services: 
+
+  # # Jaeger
+  # jaeger-all-in-one:
+  #   image: jaegertracing/all-in-one:latest
+  #   restart: always
+  #   ports:
+  #     - "16686:16686"
+  #     - "14268"
+  #     - "14250"
+
+
+  vector:
+    image: timberio/vector:0.46.X-alpine
+#    ports:
+#      - "0.0.0.0:4317:4317"   # OTLP gRPC receiver
+#      - "0.0.0.0:4318:4318"   # OTLP http/protobuf receiver
+#      - 8686:8686
+    volumes:
+      - ./config/analytics/vector.yml:/etc/vector/vector.yaml:ro
+    env_file:
+      - .envs-analytics
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg17
+    ports:
+      - 5433:5432
+    env_file:
+      - .envs-analytics
+#    environment:
+#      - POSTGRES_DB=analytics
+#      - POSTGRES_USER=tsdb
+#      - POSTGRES_PASSWORD=password
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./config/analytics/db.entrypoints.d:/docker-entrypoint-initdb.d/:ro
+    restart: always
+    
