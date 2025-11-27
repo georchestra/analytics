@@ -58,6 +58,11 @@ sinks:
     pool_size: 10
 ```
 
-If you uncomment the console sink, you will also get the output on stdout, which is very practical when debugging the workflow. You can also choose to log on stdout the opentelemetry.logs raw data instead of the data filtered by Vector.
+!!! tip "Tip"
+
+    If you uncomment the console sink, you will also get the output on stdout, which is very practical when debugging 
+    the workflow. You can also choose to log on stdout the opentelemetry.logs raw data instead of the data filtered 
+    by Vector.
+
 To know more about Vector configuration, please read its documentation on [https://vector.dev/docs](https://vector.dev/docs).
 
