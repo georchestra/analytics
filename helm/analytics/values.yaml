@@ -9,6 +9,7 @@ nodeSelector: {}
 
 timescaledb:
   builtin: true
+  timezone: "Europe/Paris"
   replicaCount: 1
   imagePullPolicy: Always
   docker_image: timescale/timescaledb-ha:pg17
