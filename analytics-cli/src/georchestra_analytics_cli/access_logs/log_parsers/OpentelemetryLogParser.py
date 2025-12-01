@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+from ua_parser import parse
 
 from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import BaseLogParser
 from georchestra_analytics_cli.access_logs.log_parsers.RegexLogParser import RegexLogParser
@@ -50,7 +51,7 @@ class OpentelemetryLogParser(BaseLogParser):
             logging.debug(f"pass    {log_dict.get('message')}")
             app_data = lp.collect_information(log_dict.get("request_path", ""), log_dict.get("request_details", {}))
             if app_data is not None:
-                # We replace the request_details dict, instead of simplfy updating it. It allows to drop some values deemed uninteresting/redundant
+                # We replace the request_details dict, instead of simply updating it. It allows to drop some values deemed uninteresting/redundant
                 # dict_recursive_update(log_dict["request_details"], app_data)
                 log_dict["request_details"] = app_data
         return log_dict
@@ -102,6 +103,13 @@ class OpentelemetryLogParser(BaseLogParser):
         # If request params are absent, we'll get them from the URL
         if not log_dict["request_details"] and u_request_qs:
             log_dict["request_details"] = split_query_string(u_request_qs)
+
+        # Append user-agent header information
+        # TODO: above, match request_details extraction with a regex rather, it would allow to add this one on-the-go
+        user_agent = attributes.get("http.request.header.User-Agent", "")
+        if user_agent:
+            ua_dict = self.parse_user_agent(user_agent)
+            log_dict["request_details"].update(ua_dict)
         return log_dict
 
     def get_app_path(self, request_path: str) -> str:
@@ -114,3 +122,29 @@ class OpentelemetryLogParser(BaseLogParser):
             # TODO: maybe raise LogParseError
             return None
         return app_path.lower()
+
+    @staticmethod
+    def parse_user_agent(user_agent):
+        """
+        Parse the User-Agent string. Tries to extract important information while keeping an reasonably low cardinality
+        (the more diversity we get in the results, the harder it will be to aggregate the values in the exploitation
+        views)
+        """
+        ua = parse(user_agent)
+        # Keep only the best bits
+        ua_dict_info = {
+            "user_agent_string": user_agent
+        }
+        if ua.user_agent:
+            ua_dict_info["user_agent_family"] = ua.user_agent.family
+            ua_dict_info["user_agent_version"] = f"{ua.user_agent.major}.{ua.user_agent.minor}"
+        # Information about the OS used
+        if ua.os:
+            ua_dict_info["os_family"] = ua.os.family
+            ua_dict_info["os_version"] = ua.os.major
+        # Information about the device (should allow to deduce if mobile phone or computer
+        if ua.device:
+            ua_dict_info["device_family"] = ua.device.family
+            ua_dict_info["device_brand"] = ua.device.brand
+            ua_dict_info["device_model"] = ua.device.model
+        return ua_dict_info

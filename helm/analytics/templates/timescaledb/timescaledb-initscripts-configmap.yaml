@@ -82,13 +82,14 @@ data:
         request_details ->> 'tiled'              AS tiled,
         request_details ->> 'is_download'       AS is_download,
         request_details ->> 'download_format'   AS download_format,
+        request_details ->> 'user_agent_family' AS user_agent_family,
         count(id)                               AS nb_req,
         AVG(response_time)                      AS avg_time,   
         percentile_agg(response_time::DOUBLE PRECISION)         AS percentile_hourly
     FROM analytics.access_logs
     GROUP BY bucket_hourly, user_name, org_name, request_method, status_code, request_details ->> 'layers',
         request_details ->> 'service', request_details ->> 'request' , request_details ->> 'tiled',
-        request_details ->> 'is_download', request_details ->> 'download_format';
+        request_details ->> 'is_download', request_details ->> 'download_format', request_details ->> 'user_agent_family';
     
     -- for explanations about the percentile_agg see
     -- https://docs.timescale.com/use-timescale/latest/continuous-aggregates/hierarchical-continuous-aggregates/#roll-up-calculations
@@ -119,11 +120,13 @@ data:
             tiled,
             is_download,
             download_format,
+            user_agent_family,
             SUM(nb_req)                               AS nb_req,
             mean(rollup(percentile_hourly))   AS avg_time,
             rollup(percentile_hourly) as percentile_daily
     FROM analytics.geoserver_summary_hourly
-    GROUP BY bucket_daily, user_name, org_name, request_method, status_code, layers, service, request, tiled, is_download, download_format;
+    GROUP BY bucket_daily, user_name, org_name, request_method, status_code, layers, service, request, tiled, is_download, 
+              download_format, user_agent_family;
     
     SELECT add_retention_policy('analytics.geoserver_summary_daily', drop_after => INTERVAL '2 years', schedule_interval => INTERVAL '1 week');
     
@@ -152,11 +155,13 @@ data:
             tiled,
             is_download,
             download_format,
+            user_agent_family,
             SUM(nb_req)                               AS nb_req,
             mean(rollup(percentile_daily))   AS avg_time,
             rollup(percentile_daily) as percentile_monthly
     FROM analytics.geoserver_summary_daily
-    GROUP BY bucket_monthly, user_name, org_name, request_method, status_code, layers, service, request, tiled, is_download, download_format;
+    GROUP BY bucket_monthly, user_name, org_name, request_method, status_code, layers, service, request, tiled, is_download, 
+              download_format, user_agent_family;
     
     -- set compression
     -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/

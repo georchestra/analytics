@@ -43,6 +43,7 @@ class AccessLogProcessor:
         """
         Fetch the log records from a database buffer table, process them and insert them in the access_logs table.
         The buffer table's content is expected to come from data collected by an OpenTelemetry collector.
+        The process is paginated in batches of self.batch_size.
         """
         self.log_parser = OpentelemetryLogParser(self.config)
 

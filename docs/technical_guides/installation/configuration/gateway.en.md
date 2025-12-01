@@ -59,6 +59,8 @@ http:
   url: true
   query-string: true
   parameters: true
+  headers: true
+  headers-pattern: "(?i)user-agent"
 
 ```
 

@@ -91,6 +91,7 @@ class GeoserverLogProcessor(AbstractLogProcessor):
 
     def is_relevant(self, request_path: str, query_string: str) -> bool:
         # TODO: support REST & OGCAPI
+        # This one should cover OGC Wxx requests
         return "service=" in query_string.lower()
 
     def _infer_is_download(self, request_path: str, url_params: dict[str, Any]) -> (bool, format):
