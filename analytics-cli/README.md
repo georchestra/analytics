@@ -17,7 +17,7 @@ Create a virtualenv and install this package:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install georchestra-analytics-cli
+pip install georchestra_analytics_cli
 ```
 
 
