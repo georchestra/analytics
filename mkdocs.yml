@@ -83,6 +83,10 @@ nav:
             - technical_guides/contribute/index.md
             - Documentation:
                 - technical_guides/contribute/documentation/index.md
+            - Tutorials:
+                - technical_guides/contribute/tutorials/index.md
+                - How to add a new app processor:
+                    - technical_guides/contribute/tutorials/add_a_new_app_processor/index.md
 
 markdown_extensions:
   - admonition
@@ -92,17 +96,17 @@ markdown_extensions:
 plugins:
   - search
   - callouts
-  # - toc-md:
-      # toc_page_title: Contents
-      # toc_page_description: Summary of the section
-      # header_level: 3
-      # pickup_description_meta: false
-      # pickup_description_class: false
-      # output_path: tableofcontent.md
-      # output_log: true
-      # ignore_page_pattern: index.md
-      # remove_navigation_page_pattern: index.md
-      # template_dir_path: custom_template
+#  - toc-md:
+#     toc_page_title: Contents
+#     toc_page_description: Summary of the section
+#     header_level: 3
+#     pickup_description_meta: false
+#     pickup_description_class: false
+#     output_path: tableofcontent.md
+#     output_log: true
+#     ignore_page_pattern: index.md
+#     remove_navigation_page_pattern: index.md
+#     template_dir_path: custom_template
   - exclude:
       glob:
         - tableofcontent.md
