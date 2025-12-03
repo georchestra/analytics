@@ -2,7 +2,11 @@ SET search_path = analytics, public;
 
 CREATE MATERIALIZED VIEW analytics.geoserver_summary_hourly
 WITH (timescaledb.continuous) AS
-SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly, user_name, org_name, request_method,  status_code,
+SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly,
+    user_name,
+    org_name,
+    request_method,
+    status_code,
     request_details ->> 'layers' AS layers,
     request_details ->> 'service'            AS service,
     request_details ->> 'request'            AS request,
@@ -14,6 +18,7 @@ SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly, user_na
     AVG(response_time)                      AS avg_time,
     percentile_agg(response_time::DOUBLE PRECISION)         AS percentile_hourly
 FROM analytics.access_logs
+WHERE app_name = 'geoserver'
 GROUP BY bucket_hourly, user_name, org_name, request_method, status_code, request_details ->> 'layers',
     request_details ->> 'service', request_details ->> 'request' , request_details ->> 'tiled',
     request_details ->> 'is_download', request_details ->> 'download_format', request_details ->> 'user_agent_family';
@@ -28,7 +33,8 @@ SELECT add_retention_policy('analytics.geoserver_summary_hourly', drop_after => 
 -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
 SELECT add_continuous_aggregate_policy('analytics.geoserver_summary_hourly',
   initial_start => '2025-11-11 00:00:05',
-  start_offset => INTERVAL '3 days',
+  start_offset => INTERVAL '7 days',
+  end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 hour');
 ALTER MATERIALIZED VIEW analytics.geoserver_summary_hourly set (timescaledb.compress = true);
 SELECT add_compression_policy('analytics.geoserver_summary_hourly', compress_after=>'4 days'::interval);
@@ -62,7 +68,7 @@ SELECT add_retention_policy('analytics.geoserver_summary_daily', drop_after => I
 SELECT add_continuous_aggregate_policy('analytics.geoserver_summary_daily',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '3 weeks',
-  end_offset => INTERVAL '1 d',
+  end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 d');
 ALTER MATERIALIZED VIEW analytics.geoserver_summary_daily set (timescaledb.compress = true);
 SELECT add_compression_policy('analytics.geoserver_summary_daily', compress_after=>'4 weeks'::interval);
@@ -95,8 +101,8 @@ GROUP BY bucket_monthly, user_name, org_name, request_method, status_code, layer
 SELECT add_continuous_aggregate_policy('analytics.geoserver_summary_monthly',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '6 months',
-  end_offset => INTERVAL '1 week',
-  schedule_interval => INTERVAL '1 week');
+  end_offset => INTERVAL '0 hours',
+  schedule_interval => INTERVAL '1 month');
 ALTER MATERIALIZED VIEW analytics.geoserver_summary_monthly set (timescaledb.compress = true);
 SELECT add_compression_policy('analytics.geoserver_summary_monthly', compress_after=>'7 months'::interval);
 

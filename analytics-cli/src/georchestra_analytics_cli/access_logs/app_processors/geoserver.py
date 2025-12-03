@@ -126,7 +126,7 @@ def _append_workspace_if_missing(request_path: str, layername: str) -> str:
     if ":" in layername:
         return layername
     else:
-        regex = "\/[a-zA-Z0-9-_]*\/(.*)\/(ows|wms|wfs|wcs|wmts)"
+        regex = r"\/[a-zA-Z0-9-_]*\/(.*)\/(ows|wms|wfs|wcs|wmts)"
         try:
             matches = re.search(regex, request_path)
             return f"{matches[1]}:{layername}"

@@ -45,7 +45,7 @@ class OpentelemetryLogParser(BaseLogParser):
         # And then add app-specific logic
         if log_dict.get("app_path", None) and log_dict.get("app_name", None):
             lp = self._get_app_processor(log_dict["app_name"], log_dict["app_path"])
-            if not (lp and lp.is_relevant(log_dict["app_path"], log_dict.get("request_query_string", ""))):
+            if not (lp and lp.is_relevant(log_dict["request_path"], log_dict.get("request_query_string", ""))):
                 logging.debug(f"drop    {log_dict.get('message')}")
                 return None
             logging.debug(f"pass    {log_dict.get('message')}")

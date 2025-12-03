@@ -79,3 +79,4 @@ class AccessLogRecord(MappedAsDataclass, Base):
 
 # place a unique index on AccessLogRecord ts, id
 Index("idx_id_timestamp", AccessLogRecord.ts, AccessLogRecord.id, unique=True)
+

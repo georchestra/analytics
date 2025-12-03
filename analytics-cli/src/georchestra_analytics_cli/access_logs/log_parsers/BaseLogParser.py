@@ -52,4 +52,4 @@ class BaseLogParser(AbstractLogParser):
             else:
                 logging.debug(f"Log processor for app {app_path} not found. Dropping this line")
                 return None
-        return self.app_processors[app_path]
+        return self.app_processors[app_name]

@@ -90,7 +90,7 @@ class Config:
         return self.config["performance"].get("batch_size", 1000)
 
     def get_app_processors_config(self) -> dict[str, Any]:
-        return self.config["app_processors"]
+        return self.config.get("app_processors", {})
 
     def get_metrics_pushgateway_url(self) -> str:
         return self.config["metrics"].get("pushgateway_url")
