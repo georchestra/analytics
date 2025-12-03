@@ -2,7 +2,7 @@
 
 Analytics is an assembly of several components, interacting in a quite loose manner. When troubleshooting, you should be able to examine each of those components in the process chain and check, one by one, that it performs as expected.
 
-Keep in mind the workflows presented in the [Presentation section](../presentation.md), it will help you understand how the components interact with each other.
+Keep in mind the workflows presented in the [Presentation section](presentation/), it will help you understand how the components interact with each other.
 
 ## Access logs generation
 

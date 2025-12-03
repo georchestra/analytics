@@ -50,6 +50,16 @@ app_processors:
         csv: "CSV"
         excel: "Excel"
         excel2007: "Excel"
+  datapi:
+    download_formats:
+      vector:
+        # List of formats with a human-friendly label. Keys (format name) should match the WFS Getfeature supported
+        # outputFormats but *in lowercase*
+        shapefile: "Shapefile"
+        json: "JSON"
+        geojson: "GeoJSON"
+        csv: "CSV"
+        ooxml: "Excel"
 
 
 

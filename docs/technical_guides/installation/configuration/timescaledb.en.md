@@ -23,7 +23,8 @@ might want to adapt them to your needs and expectations.
 
 !!! warning "Warning"
 
-    The timzone you are in will be of great importance for the continuous aggregates. Make sure you read the [Configuring your timezone](#timezone) chapter.
+    The timezone you are in will be of great importance for the continuous aggregates. Make sure you read the 
+    [Configuring your timezone](#configuring-your-timezone) chapter.
 
 ### Tables
 
