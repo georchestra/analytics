@@ -78,6 +78,9 @@ nav:
               - technical_guides/installation/configuration/analytics-cli.md
               - technical_guides/installation/configuration/superset.md
             - technical_guides/installation/troubleshooting.md
+            - Advanced configurations:
+              - technical_guides/installation/advanced_configurations/index.md
+              - technical_guides/installation/advanced_configurations/gateway_reconcile_netty_logs.en.md
             # - technical_guides/installation/tests.md
         - Contribute:
             - technical_guides/contribute/index.md

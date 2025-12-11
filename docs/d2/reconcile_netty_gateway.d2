@@ -1,0 +1,29 @@
+direction: down
+
+title: |md
+  # Reconcile Netty and Gateway access logs
+| {near: top-center}
+
+gateway: geOrchestra Gateway {
+    label.near: top-center
+    netty: Netty httpd server
+    gw: Gateway
+}
+
+vector: OpenTelemetry handler (vector)
+
+
+tsdb: PostgreSQL TimescaleDB {
+  shape: cylinder
+  label.near: bottom-center
+  grid-rows: 3
+  buffer: Buffer table
+  hyper: Hypertable (storage)
+  views: Exploitation views
+
+
+  hyper -- views
+}
+
+gateway.netty --> vector <-- gateway.gw
+vector --> tsdb
