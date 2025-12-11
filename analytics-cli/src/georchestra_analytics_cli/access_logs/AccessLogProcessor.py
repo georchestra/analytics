@@ -172,7 +172,8 @@ class AccessLogProcessor:
             processed_log_records = list()
             try:
                 while start < stop_time:
-                    for _ in range(random.randint(0, max_rate)):
+                    nb_records = random.randint(0, max_rate)
+                    for _ in range(nb_records):
                         ts = start.timestamp() + random.randint(0, 3600)
                         record = self.log_parser.parse(datetime.fromtimestamp(ts))
                         processed_log_records.append(record)
@@ -180,6 +181,7 @@ class AccessLogProcessor:
                         if processed_log_records and len(processed_log_records) % self.batch_size == 0:
                             logger.debug(f"Upserting {len(processed_log_records)} log records")
                             self.upsert_log_records(session, processed_log_records)
+                    logger.debug(f"[{start.strftime('%m/%d/%Y, %H')} h] Generated {nb_records} log records")
                     start = start + timedelta(hours=1)
 
                 # Last commit at the end of the loop, commit remaining batch
