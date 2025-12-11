@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS analytics.access_logs
     message              text        NOT NULL,
     app_path             text        NOT NULL,
     app_name             text        NOT NULL,
+    ip                   text,
     user_id              text,
     user_name            text,
     org_id               text,

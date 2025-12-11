@@ -77,6 +77,8 @@ class OpentelemetryLogParser(BaseLogParser):
     def read_otel_mdc(self, otel_record: OpentelemetryAccessLogRecord) -> dict[str, Any]:
         """
         Retrieve data from the MDC data (stored by Otel in "attributes")
+        TODO: more robust handling of Otel attributes as per https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/
+        (e.g. http.status_code deprecated in favor of http.response.status_code)
         """
         attributes = otel_record.attributes or dict()
         u_path, u_request_qs, u_fragments = split_url(attributes.get("http.request.url", "").lower())
@@ -99,6 +101,7 @@ class OpentelemetryLogParser(BaseLogParser):
             "response_time": int_or_none(attributes.get("http.response.duration_ms", "")),
             "response_size": int_or_none(attributes.get("http.response.body.size_bytes", "")),
             "status_code": int_or_none(attributes.get("http.status_code", "")),
+            "ip": attributes.get("client.address", "")
         }
         # If request params are absent, we'll get them from the URL
         if not log_dict["request_details"] and u_request_qs:
