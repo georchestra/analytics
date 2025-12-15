@@ -129,6 +129,17 @@ vector:
 # Python CLI cronjob
 cli:
   enabled: true
+  fakeRecords:
+    # Enable this if you want to generate fake log records, instead of processing real ones.
+    # Useful for dashboard development.
+    # Beware that when this is active, it will not process the real records, only generate fake ones.
+    enabled: false
+    # This setting defines how many hours before now will be covered. You will want to make it match with the schedule
+    # For instance, with coverDurationHours: 1 and schedule: "01 * * * *", it will generate every hour records for the
+    # last hour (ensuring you don't have any gaps in your data)
+    coverDurationHours: 1
+    # Max number of records per hour.
+    maxRate: 50
   schedule: "0 01 * * *"
   image: georchestra/analytics-cli:latest
   imagePullPolicy: Always
@@ -179,6 +190,5 @@ cli:
           level: DEBUG
         __main__:
           level: DEBUG
-
 
 
