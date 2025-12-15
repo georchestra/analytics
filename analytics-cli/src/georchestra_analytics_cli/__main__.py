@@ -14,17 +14,18 @@ from georchestra_analytics_cli import __version__, dist_name
 
 module_logger = logging.getLogger(__name__)
 
-conf: Config  = None # Global CLI config. Initialized at startup in the cli() function.
+conf: Config = None  # Global CLI config. Initialized at startup in the cli() function.
 
 registry = CollectorRegistry()
 
 s = Summary("job_duration_seconds", "Duration of a job run", registry=registry, labelnames=["command"])
 g = Gauge(
-            "job_last_success_unixtime",
-            "Last time a batch job successfully finished",
-            registry=registry,
-            labelnames=["command"]
-        )
+    "job_last_success_unixtime",
+    "Last time a batch job successfully finished",
+    registry=registry,
+    labelnames=["command"]
+)
+
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
 @click.option("--version", default=False, is_flag=True)
@@ -32,7 +33,6 @@ g = Gauge(
 def cli(version, config_file):
     if version:
         print(f"{dist_name} {__version__}")
-
 
     global conf
     conf = load_config_from(config_file)
@@ -83,12 +83,19 @@ def file2db(file):
 
 
 @cli.command()
-@click.option("--start", help='Start datetime to start generating fake data. ISO format, in UTC timezone. Defaults to now - 8 days.')
-@click.option("--stop", help='Stop datetime for generating fake data. ISO format, in UTC timezone. Default to now.')
-@click.option("--rate", help='Max number of fake request per hour. The actual nb of request is randomized between 0 and `rate`. Default to 10.', default=10)
-def fake2db(start, stop, rate = 10):
+@click.option("--start",
+              help='Start datetime to start generating fake data. ISO format, in UTC timezone. Defaults to now - 1 hour.',
+              type=str)
+@click.option("--stop", help='Stop datetime for generating fake data. ISO format, in UTC timezone. Defaults to now.',
+              type=str)
+@click.option("--last_n_hours", help="Sets start to `stop` - n hours (this case supposes you don't set start time",
+              type=int, default=1)
+@click.option("--rate",
+              help='Max number of fake request per hour. The actual nb of request is randomized between 0 and `rate`. Default to 10.',
+              type=int, default=10)
+def fake2db(start: str = None, stop: str = None, last_n_hours: int = 1, rate: int = 10):
     """
-    Generate fake records and insert them into the DB
+    Generate fake records and insert them into the DB. Time granularity is the hour.
     :return:
     """
     global conf
@@ -97,7 +104,7 @@ def fake2db(start, stop, rate = 10):
         if start is not None:
             start_ts = date_parser.parse(start)
         else:
-            start_ts = datetime.now(timezone.utc) - timedelta(days=8)
+            start_ts = datetime.now(timezone.utc) - timedelta(hours=last_n_hours)
         if stop is not None:
             stop_ts = date_parser.parse(stop)
         else:

@@ -25,9 +25,17 @@ spec:
             #   - /bin/sh
             #   - -c
             #   - sleep 10000
-            command:
-              - analytics-cli
-              - buffer2db
+            command: ["analytics-cli"]
+            args:
+            {{- if $webapp.fakeRecords.enabled }}
+              - "fake2db"
+              - "--last_n_hours"
+              - {{ $webapp.fakeRecords.coverDurationHours | quote }}
+              - "--rate"
+              - {{ $webapp.fakeRecords.maxRate | quote }}
+            {{- else }}
+              - "buffer2db"
+            {{- end }}
             env:
               - name: TSDB_HOST
                 valueFrom:

@@ -8,3 +8,4 @@ SQLAlchemy
 psycopg2-binary
 python-dateutil
 ua-parser[regex]
+Jinja2
