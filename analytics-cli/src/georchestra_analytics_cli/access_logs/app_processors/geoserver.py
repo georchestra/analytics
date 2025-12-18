@@ -1,40 +1,32 @@
 """
-Process log files for the geoserver app
+Process log files for the Geoserver app
+Inherits from the generic OGC server processor
 """
 
 import logging
 import re
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
-from georchestra_analytics_cli.utils import split_query_string
-from georchestra_analytics_cli.access_logs.app_processors.abstract import AbstractLogProcessor
+from georchestra_analytics_cli.access_logs.app_processors.ogcserver import OgcserverLogProcessor
 
 
-class GeoserverLogProcessor(AbstractLogProcessor):
+class GeoserverLogProcessor(OgcserverLogProcessor):
     app_path: str = "geoserver"
 
-    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
-        self.app_path = app_path if app_path else self.app_path
-        self.app_id = app_id if app_id else self.app_path
-        self.config = config
-
-    def collect_information_from_url(self, url: str) -> dict:
+    def is_relevant(self, request_path: str, query_string: str) -> bool:
         """
-        Collect the app-specific information and structure it in a dict.
-        :param url: the request url:
-        :return: a dict with the app-specific information
-        """
-        # Lowercase the full URL to
-        url_parts = urlparse(url.lower())
+        Check if the request matches a pattern corresponding to a query we want to track.
+        The patterns a regex-compiled and stored in the class, to optimize performance.
+        Look at self.relevance_test_list
 
-        # Flatten the dict (URL params supports repeated values which leads to values as list
-        try:
-            url_params = split_query_string(url_parts.query)
-            return self.collect_information(url_parts.path, url_params)
-        except KeyError as e:
-            logging.error(e)
-            return None
+        Currently supports:
+        - OGC WxS services (WMS, WFS, WCS, WMTS, CSW)
+        -
+        TODO:
+        - OGCAPI feature
+        - REST services
+        """
+        return super().is_relevant(request_path, query_string)
 
     def collect_information(self, request_path: str, params: dict[str, Any]) -> dict:
         """
@@ -44,123 +36,62 @@ class GeoserverLogProcessor(AbstractLogProcessor):
         :param params: a dict containing the request parameters
         :return: the same dict, with updated content (some lements can be removed)
         """
-        infos = {}
-        try:
-            for k, v in params.items():
-                match k.lower():
-                    case "layers":
-                        infos["layers"] = _normalize_layers(request_path, v)
-                    case "typename": # WFS GetFeature layers list
-                        infos["layers"] = _normalize_layers(request_path, v)
-                    case "tiled":
-                        # Make it a boolean
-                        if isinstance(v, str):
-                            infos["tiled"] = v.lower() in ["true"]
-                        else:
-                            infos["tiled"] = v
-                    case "height":
-                        infos["height"] = v
-                    case "width":
-                        infos["width"] = v
-                        if params.get("height", None):
-                            infos["size"] = v + "x" + params.get("height")
-                            if self.config.get("infer_is_tiled", False) and (infos["size"] in ["256x256", "512x512"]):
-                                infos["tiled"] = True
-                    case "srs":
-                        # Unify to crs, which is the key used on WMS 1.3.0
-                        infos["crs"] = v.upper()
-                    case "crs":
-                        infos["crs"] = v.upper()
-                    case "service":
-                        # Make it uppercase
-                        infos["service"] = v.upper()
-                    case "request":
-                        # Make it lowercase
-                        infos["request"] = v.lower()
-                    case other:
-                        infos[k.lower()] = v
-            if self.config.get("infer_is_download", False) is True:
-                is_download, output_format = self._infer_is_download(request_path, params)
-                if is_download:
-                    infos["is_download"] = True
-                    infos["download_format"] = output_format
-            return infos
-        except KeyError as e:
-            logging.error(f"Key {e} not found in dictionary {params.__str__()}")
+        infos = super().collect_information(request_path, params)
+        if not infos:
             return None
 
-    def is_relevant(self, request_path: str, query_string: str) -> bool:
-        # TODO: support REST & OGCAPI
-        # This one should cover OGC Wxx requests
-        return "service=" in query_string.lower()
+        if infos.get("layers", ""):
+            workspaces, layers = self.normalize_layers(request_path, infos.get("layers"))
+            infos["layers"] = ",".join(layers)
+            infos["workspaces"] = ",".join(workspaces)
+        return infos
 
-    def _infer_is_download(self, request_path: str, url_params: dict[str, Any]) -> (bool, format):
+    def normalize_layers(self, request_path, layerparam) -> tuple[list[str], list[str]]:
         """
-        Infer if the request is a download request. If yes, return also the format. Performs a mapping
-        with the list of formats provided in the config file: allows both a filtering on the formats and
-        more human-friendly names for the formats.
+        The workspace can be
+        - provided in the layer name as a prefix
+        - provided in the request path through the "Virtual Services"
+        - both
+        Knowing that there can be a list of layers with a mixed behaviour
+        This function separates workspaces from layers
 
+        return: tuple (workspaces, layers) each being a list of names since multiple layers can be provided
         """
-        # TODO: support OGCAPI
-        # Vector data:
-        if url_params.get("service", "").lower() == "wfs" and url_params.get("request", "").lower() == "getfeature":
-            req_format = url_params.get("outputformat", "").lower()
-            download_formats = self.config.get("download_formats", {}).get("vector", {})
-            if req_format in download_formats.keys():
-                return True, download_formats.get(req_format)
-        # Raster data:
-        if url_params.get("service", "").lower() == "wcs" and url_params.get("request", "").lower() == "getcoverage":
-            req_format = url_params.get("outputformat", "").lower()
-            return True, req_format
-        return False, None
+        workspaces = []
+        layers = []
+        if not layerparam:
+            return [],[]
+        path_based_ws = self.get_workspace_from_path(request_path)
+        for layer in layerparam.split(","):
+            if ":" in layer:
+                w, l = layer.split(":")
+                workspaces.append(w)
+                layers.append(l)
+            else:
+                workspaces.append(path_based_ws)
+                layers.append(layer)
+        # if we have several layers, but they use all the same workspace, we can squash it into a single entry
+        if len(workspaces) > 1 and len(set(workspaces)) == 1:
+            workspaces = [workspaces[0]]
+
+        return workspaces, layers
 
 
-def _append_workspace_if_missing(request_path: str, layername: str) -> str:
-    """
-    The workspace can be
-    - provided in the layer name as a prefix
-    - provided in the request path through the "Virtual Services"
-    - both
-    This function normalizes the layer name by prefixing it with the workspace if needed.
-    """
-    if ":" in layername:
-        return layername
-    else:
-        regex = r"\/[a-zA-Z0-9-_]*\/(.*)\/(ows|wms|wfs|wcs|wmts)"
-        try:
-            matches = re.search(regex, request_path)
-            return f"{matches[1]}:{layername}"
-        except:
-            logging.debug(f"Could not extract geoserver workspace name from path {request_path}")
-            return layername
-
-
-def _get_workspace_from_path(request_path: str, app_path: str = "") -> str:
-    """
-    The workspace can be
-    - provided in the layer name as a prefix
-    - provided in the request path through the "Virtual Services"
-    - both
-    This function extracts the workspace in the 2nd and 3d cases
-    """
-    path = self.get_path_without_app_path(request_path, app_path)
-    regex = r"\/(.*)\/(ows|wms|wfs|wcs|wmts)"
-    try:
-        matches = re.search(regex, request_path)
-        return matches[1]
-    except:
-        logging.debug(f"Could not extract geoserver workspace name from path {request_path}")
-        return layername
-
-def _normalize_layers(request_path: str, layerparam: str) -> str:
-    """
-    Extract the layer name from the possible syntaxes allowed by OGC.
-    Supports the eventuality of a request asking for several layers at once.
-    Returns a string, a comma separated list of layers if there are several.
-    (not a list because it will be complicated to handle once in the database,
-    due to some limitations on the timescaledb continuous aggregates)
-    """
-    layers = [_append_workspace_if_missing(request_path.lower(), l.lower()) for l in layerparam.split(",")]
-    return ",".join(layers)  # comma separated list of layers if there are several
-
-
+    def get_workspace_from_path(self, request_path: str) -> str:
+        """
+        In Geoserver, the workspace can be provided in the path or in the query string as part of the layers parameter.
+        There can even be a mix of both, for instance when requiring several layers, the ons without prefix will be
+        taken on the path-based workspace, while others will tell explicitly which ws to look into.
+        This function tries to extract the workspace from the path.
+        """
+        path = self.get_path_without_app_path(request_path)
+        # Integrated GWC paths
+        regexes = [
+            r".*\/(.*)\/gwc\/service\/(ows|wms|wfs|wcs|wmts)",  # GWC paths
+            r".*\/(.*)\/(ows|wms|wfs|wcs|wmts)",                # basic paths
+        ]
+        for regex in regexes:
+            matches = re.search(regex, path)
+            if matches:
+                return matches[1]
+        return ""
