@@ -13,10 +13,10 @@ from georchestra_analytics_cli.access_logs.app_processors.abstract import Abstra
 
 class GeoserverLogProcessor(AbstractLogProcessor):
     app_path: str = "geoserver"
-    config: dict[str:Any] = {}
 
-    def __init__(self, app_path: str = "geoserver", config: dict[str:Any] = {}):
-        self.app_path = app_path
+    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
+        self.app_path = app_path if app_path else self.app_path
+        self.app_id = app_id if app_id else self.app_path
         self.config = config
 
     def collect_information_from_url(self, url: str) -> dict:
@@ -134,6 +134,23 @@ def _append_workspace_if_missing(request_path: str, layername: str) -> str:
             logging.debug(f"Could not extract geoserver workspace name from path {request_path}")
             return layername
 
+
+def _get_workspace_from_path(request_path: str, app_path: str = "") -> str:
+    """
+    The workspace can be
+    - provided in the layer name as a prefix
+    - provided in the request path through the "Virtual Services"
+    - both
+    This function extracts the workspace in the 2nd and 3d cases
+    """
+    path = self.get_path_without_app_path(request_path, app_path)
+    regex = r"\/(.*)\/(ows|wms|wfs|wcs|wmts)"
+    try:
+        matches = re.search(regex, request_path)
+        return matches[1]
+    except:
+        logging.debug(f"Could not extract geoserver workspace name from path {request_path}")
+        return layername
 
 def _normalize_layers(request_path: str, layerparam: str) -> str:
     """

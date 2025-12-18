@@ -1,14 +1,8 @@
 title: "Analytics CLI config file"
 
-# apps_mapping is a dict of app_path:app_name, used to determine which *software* is running for a given path.
-# Apps which path match the app name don't have to be listed.
-# App names have to match the name used in this project's app_processors subpackage.
-apps_mapping:
-  "/data/": dataapi
-
 performance:
   # Publish in DB by batches
-  batch_size: 10000
+  batch_size: 100
 
 database:
   drivername: "postgresql"
@@ -17,7 +11,12 @@ database:
   database: "analytics"
 #  schema: analytics
   username: "tsdb"
-  password: !ENV "${GOA_DB_PASSWORD:secret}"
+  password: !ENV "${DB_SECRET:secret}"
+
+support_multiple_dn: true
+apps_mapping:
+   "demo.georchestra.org/catalog/": "geonetwork"
+   "mapserv.georchestra.org/": "mapserver"
 
 parsers:
   opentelemetry:
@@ -29,8 +28,6 @@ parsers:
 
 metrics:
   enabled: true
-  metrics_file_path: /tmp/analytics.prom
-#  pushgateway_url: localhost:9091
 
 logging:
   version: 1

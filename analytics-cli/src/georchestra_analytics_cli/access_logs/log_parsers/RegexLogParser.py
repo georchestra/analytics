@@ -87,17 +87,11 @@ class RegexLogParser(BaseLogParser):
         }
 
         # And then add app-specific logic
-        if log_dict.get("app_path", None) and log_dict.get("app_name", None):
-            lp = self._get_app_processor(log_dict["app_name"], log_dict["app_path"])
-            if not (lp and lp.is_relevant(log_dict["app_path"], log_dict.get("request_query_string", ""))):
-                logging.debug(f"drop    {log_dict.get('message')}")
-                return None
-            logging.debug(f"pass    {log_dict.get('message')}")
-            app_data = lp.collect_information(log_dict.get("request_path", ""), log_dict.get("request_details", {}))
-            if app_data is not None:
-                # We replace the request_details dict, instead of simplfy updating it. It allows to drop some values deemed uninteresting/redundant
-                # dict_recursive_update(log_dict["request_details"], app_data)
-                log_dict["request_details"] = app_data
+        app_data = self.parse_with_app_processor(log_dict)
+        if app_data is not None:
+            # We replace the request_details dict, instead of simply updating it. It allows to drop some values deemed uninteresting/redundant
+            # dict_recursive_update(log_dict["request_details"], app_data)
+            log_dict["request_details"] = app_data
         return log_dict
 
     def get_app_path(self, m_dict: dict[str, Any]) -> str:

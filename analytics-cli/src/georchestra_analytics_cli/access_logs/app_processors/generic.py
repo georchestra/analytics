@@ -10,7 +10,7 @@ from .abstract import AbstractLogProcessor
 
 
 class GenericLogProcessor(AbstractLogProcessor):
-    def __init__(self, app_path: str = "", config: dict[str:Any] = {}):
+    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
         pass
 
     def collect_information_from_url(self, url: str) -> dict:

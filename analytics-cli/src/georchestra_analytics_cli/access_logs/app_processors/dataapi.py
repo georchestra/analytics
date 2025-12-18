@@ -13,12 +13,14 @@ from georchestra_analytics_cli.access_logs.app_processors.abstract import Abstra
 
 
 class DataapiLogProcessor(AbstractLogProcessor):
+    app_id: str
     app_path: str = "data"
-    config: dict[str:Any] = {}
-    download_formats: dict[str:Any] = {}
+    config: dict[str, Any] = {}
+    download_formats: dict[str, Any] = {}
 
-    def __init__(self, app_path: str = "data", config: dict[str:Any] = {}):
-        self.app_path = app_path
+    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
+        self.app_path = app_path if app_path else self.app_path
+        self.app_id = app_id if app_id else self.app_path
         self.config = config
         self.download_formats = self.config.get("download_formats", {}).get("vector", {})
 

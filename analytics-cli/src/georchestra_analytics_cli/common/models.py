@@ -26,8 +26,8 @@ class OpentelemetryAccessLogRecord(MappedAsDataclass, Base):
 
     __tablename__ = "opentelemetry_buffer"
 
-    timestamp: Mapped[datetime] = mapped_column(init=False, primary_key=True)
-    span_id: Mapped[Optional[str]] = mapped_column(init=False, primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(primary_key=True)
+    span_id: Mapped[Optional[str]] = mapped_column(primary_key=True)
     trace_id: Mapped[Optional[str]]
     message: Mapped[str] = mapped_column()
     attributes: Mapped[Optional[dict[str, Any]]]

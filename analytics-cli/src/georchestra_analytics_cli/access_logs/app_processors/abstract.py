@@ -9,7 +9,7 @@ from typing import Any
 class AbstractLogProcessor(ABC):
 
     @abstractmethod
-    def __init__(self, app_path: str = "", config: dict[str:Any] = {}):
+    def __init__(self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}):
         pass
 
     @abstractmethod

@@ -6,7 +6,7 @@ from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import Base
 from georchestra_analytics_cli.access_logs.log_parsers.RegexLogParser import RegexLogParser
 from georchestra_analytics_cli.common.models import OpentelemetryAccessLogRecord
 from georchestra_analytics_cli.config import Config
-from georchestra_analytics_cli.utils import int_or_none, dict_recursive_update, split_url, split_query_string
+from georchestra_analytics_cli.utils import int_or_none, dict_recursive_update, split_url, split_query_string, generate_app_id
 
 logger = logging.getLogger(__name__)
 
@@ -43,17 +43,11 @@ class OpentelemetryLogParser(BaseLogParser):
 
         dict_recursive_update(log_dict, self.read_otel_mdc(otel_record))
         # And then add app-specific logic
-        if log_dict.get("app_path", None) and log_dict.get("app_name", None):
-            lp = self._get_app_processor(log_dict["app_name"], log_dict["app_path"])
-            if not (lp and lp.is_relevant(log_dict["request_path"], log_dict.get("request_query_string", ""))):
-                logging.debug(f"drop    {log_dict.get('message')}")
-                return None
-            logging.debug(f"pass    {log_dict.get('message')}")
-            app_data = lp.collect_information(log_dict.get("request_path", ""), log_dict.get("request_details", {}))
-            if app_data is not None:
-                # We replace the request_details dict, instead of simply updating it. It allows to drop some values deemed uninteresting/redundant
-                # dict_recursive_update(log_dict["request_details"], app_data)
-                log_dict["request_details"] = app_data
+        app_data = self.parse_with_app_processor(log_dict)
+        if app_data is not None:
+            # We replace the request_details dict, instead of simply updating it. It allows to drop some values deemed uninteresting/redundant
+            # dict_recursive_update(log_dict["request_details"], app_data)
+            log_dict["request_details"] = app_data
         return log_dict
 
     def read_otel_generics(self, otel_record: OpentelemetryAccessLogRecord) -> dict[str, Any]:
@@ -81,12 +75,21 @@ class OpentelemetryLogParser(BaseLogParser):
         (e.g. http.status_code deprecated in favor of http.response.status_code)
         """
         attributes = otel_record.attributes or dict()
-        u_path, u_request_qs, u_fragments = split_url(attributes.get("http.request.url", "").lower())
+        u_hostname, u_path, u_request_qs, u_fragments = split_url(attributes.get("http.request.url", "").lower())
         request_path = attributes.get("http.request.path", "").lower() or u_path
-        app_path = self.get_app_path(request_path)
+        app_path = "/" if attributes.get("app_path_is_root") else self.get_app_path(request_path)
+        server_address = attributes.get("server.address", "").lower() or u_hostname
+
+        # App_id will be used to detect which app it is and reuse the app_processors once created.
+        # If supporting multiple domain names, we have to prevent path conflicts, hence add the DN
+        # If not supporting multiple DNs, we keep with the app_path, since it can be just implicit in most cases (/geoserver/ path = geoserver, /data/=dataapi, etc)
+        app_id_components = [server_address, app_path] if self.config.is_supporting_multiple_dn() else [app_path]
+        app_id = generate_app_id(app_id_components)
+
         log_dict = {
+            "app_id": app_id,
             "app_path": app_path,
-            "app_name": self.config.what_app_is_it(app_path),
+            "app_name": self.config.what_app_is_it(app_id),
             "user_id": attributes.get("enduser.uuid", ""),
             "user_name": attributes.get("enduser.id", ""),
             "org_id": attributes.get("enduser.org.uuid", ""),
@@ -101,14 +104,15 @@ class OpentelemetryLogParser(BaseLogParser):
             "response_time": int_or_none(attributes.get("http.response.duration_ms", "")),
             "response_size": int_or_none(attributes.get("http.response.body.size_bytes", "")),
             "status_code": int_or_none(attributes.get("http.status_code", "")),
-            "ip": attributes.get("client.address", "")
+            "client_ip": attributes.get("client.address", ""),
+            "server_address": server_address,
         }
         # If request params are absent, we'll get them from the URL
         if not log_dict["request_details"] and u_request_qs:
             log_dict["request_details"] = split_query_string(u_request_qs)
+        # TODO: above, match request_details extraction with a regex rather, it would allow to add this one on-the-go
 
         # Append user-agent header information
-        # TODO: above, match request_details extraction with a regex rather, it would allow to add this one on-the-go
         user_agent = attributes.get("http.request.header.User-Agent", "")
         if user_agent:
             ua_dict = self.parse_user_agent(user_agent)
@@ -124,7 +128,7 @@ class OpentelemetryLogParser(BaseLogParser):
         except IndexError as e:
             # TODO: maybe raise LogParseError
             return None
-        return app_path.lower()
+        return f"/{app_path.lower()}/"
 
     @staticmethod
     def parse_user_agent(user_agent):

@@ -13,6 +13,9 @@ database:
   username: "tsdb"
   password: !ENV "${DB_SECRET:secret}"
 
+apps_mapping:
+  "/data/": dataapi
+
 parsers:
   opentelemetry:
     text_message_parser:
