@@ -1,7 +1,7 @@
 """
 Generic log processor. Serves for simple cases or as fallback on apps for which a log processor has not yet
 been created.
-For now, does nothing.
+For now, does filter nothing.
 """
 
 from typing import Any
