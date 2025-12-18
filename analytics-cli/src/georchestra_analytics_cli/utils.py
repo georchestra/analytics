@@ -11,6 +11,12 @@ def int_or_none(value):
     except (ValueError, TypeError):
         return None
 
+def float_or_none(value):
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
 def dict_recursive_update(d, u):
     """
     Classic dict.update is not recursive.
