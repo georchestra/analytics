@@ -88,7 +88,7 @@ class AccessLogProcessor:
                 logger.error(f"Error deleting files from the buffer table: {e}")
                 session.rollback()
 
-    def process_file_logs(self, log_file_path):
+    def process_file_logs(self, log_file_path, extra_info: dict[str, Any] = None):
         """
         Fetch the log records from a textual log file (e.g., CLF file), process them using a regular expression (set in
         configuration, default is CLF)and insert them in the access_logs table.
@@ -96,6 +96,7 @@ class AccessLogProcessor:
         :return:
         """
         self.log_parser = RegexLogParser(self.config)
+        self.log_parser.set_extra_info(extra_info)
 
         with open(log_file_path, 'r') as logs_data, self.get_session() as session:
             processed_log_records = list()

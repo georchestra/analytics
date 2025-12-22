@@ -1,6 +1,5 @@
 import logging
 from typing import Any
-from ua_parser import parse
 
 from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import BaseLogParser
 from georchestra_analytics_cli.access_logs.log_parsers.RegexLogParser import RegexLogParser
@@ -130,28 +129,3 @@ class OpentelemetryLogParser(BaseLogParser):
             return None
         return f"/{app_path.lower()}/"
 
-    @staticmethod
-    def parse_user_agent(user_agent):
-        """
-        Parse the User-Agent string. Tries to extract important information while keeping an reasonably low cardinality
-        (the more diversity we get in the results, the harder it will be to aggregate the values in the exploitation
-        views)
-        """
-        ua = parse(user_agent)
-        # Keep only the best bits
-        ua_dict_info = {
-            "user_agent_string": user_agent
-        }
-        if ua.user_agent:
-            ua_dict_info["user_agent_family"] = ua.user_agent.family
-            ua_dict_info["user_agent_version"] = f"{ua.user_agent.major}.{ua.user_agent.minor}"
-        # Information about the OS used
-        if ua.os:
-            ua_dict_info["os_family"] = ua.os.family
-            ua_dict_info["os_version"] = ua.os.major
-        # Information about the device (should allow to deduce if mobile phone or computer
-        if ua.device:
-            ua_dict_info["device_family"] = ua.device.family
-            ua_dict_info["device_brand"] = ua.device.brand
-            ua_dict_info["device_model"] = ua.device.model
-        return ua_dict_info
