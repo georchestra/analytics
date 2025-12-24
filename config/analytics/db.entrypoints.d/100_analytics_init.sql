@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS analytics.access_logs
     id                   text,
     ts                   timestamptz NOT NULL,
     message              text        NOT NULL,
+    app_id               text        NOT NULL,
     app_path             text        NOT NULL,
     app_name             text        NOT NULL,
     ip                   text,
@@ -40,6 +41,8 @@ CREATE TABLE IF NOT EXISTS analytics.access_logs
     response_time        integer,
     response_size        integer,
     status_code          integer,
+    client_ip            text,
+    server_address       text,
     context_data         jsonb,
     PRIMARY KEY (ts, oid)
 );

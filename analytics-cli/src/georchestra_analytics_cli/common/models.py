@@ -56,6 +56,7 @@ class AccessLogRecord(MappedAsDataclass, Base):
     id: Mapped[Optional[str]]
     ts: Mapped[datetime] = mapped_column()
     message: Mapped[str] = mapped_column()
+    app_id: Mapped[str] = mapped_column()
     app_path: Mapped[str] = mapped_column()
     app_name: Mapped[str] = mapped_column()
     user_id: Mapped[str] = mapped_column()
@@ -70,6 +71,8 @@ class AccessLogRecord(MappedAsDataclass, Base):
     request_details: Mapped[Optional[dict[str, Any]]]
     response_time: Mapped[Optional[int]]
     response_size: Mapped[Optional[int]]
+    client_ip: Mapped[str] = mapped_column()
+    server_address: Mapped[str] = mapped_column()
     status_code: Mapped[Optional[int]]
     context_data: Mapped[Optional[dict[str, Any]]]
 
