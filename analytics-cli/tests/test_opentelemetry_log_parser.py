@@ -10,7 +10,6 @@ from data.otel_records import otel_record1
 config_file = os.path.join(os.path.dirname(__file__), "config_files/config.yaml")
 
 
-
 def test_create_parser():
     conf = load_config_from(config_file)
     log_parser = OpentelemetryLogParser(conf)
