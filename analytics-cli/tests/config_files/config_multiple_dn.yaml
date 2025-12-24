@@ -24,7 +24,8 @@ parsers:
       enable: false
       regex: r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app_path>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
   text_message:
-    regex: '^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app_path>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*) \"-\" \"(?P<user_agent>[-0-9a-zA-Z\/\.: ();_]*)\" (?P<misc>.*) (?P<response_time>[0-9]+)ms$'
+    regex: '^(?P<client_ip>[0-9\.]+) (?P<local_ip>[0-9\.]+) (?P<server_address>[-_\w\./:]+) (?P<user_identifier>[-_\w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*) \"-\" \"(?P<user_agent>[-0-9a-zA-Z\/\.: ();_]*)\" (?P<response_time>[0-9\.]+)$'
+    response_time_unit: "s"
 
 metrics:
   enabled: true
