@@ -112,6 +112,9 @@ class OgcserverLogProcessor(AbstractLogProcessor):
                 if is_download:
                     infos["is_download"] = True
                     infos["download_format"] = output_format
+
+            # Tags will allow us to filter the records for the analysis views, e.g. OGC analytics
+            infos["tags"] = ["ogc"]
             return infos
         except KeyError as e:
             logging.error(f"Key {e} not found in dictionary {params.__str__()}")
