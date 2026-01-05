@@ -14,6 +14,10 @@ database:
   password: !ENV "${DB_SECRET:secret}"
 
 support_multiple_dn: true
+
+data_privacy:
+  keys_blacklist: []
+
 apps_mapping:
    "demo.georchestra.org/catalog/": "geonetwork"
    "mapserv.georchestra.org/": "mapserver"
