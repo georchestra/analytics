@@ -47,3 +47,11 @@ def test_config_app_mapping_multiple_dn():
     assert conf.what_app_is_it("mapserv.georchestra.org/") == "mapserver"
     # This one covers a non-delcared mapping
     assert conf.what_app_is_it("mapproxy.georchestra.org/") == "mapproxy.georchestra.org"
+
+def test_config_keys_blacklist():
+    conf = load_config_from(config_file)
+    assert conf.get_keys_blacklist() == ["user_id", "user_name", "roles"]
+
+def test_config_keys_blacklist_empty():
+    conf = load_config_from(config_multiple_dn)
+    assert conf.get_keys_blacklist() == []

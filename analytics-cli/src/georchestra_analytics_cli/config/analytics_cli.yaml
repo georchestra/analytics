@@ -22,6 +22,17 @@ apps_mapping: { }
 # recognized at all, you will have to be explicit there
 support_multiple_dn: false
 
+data_privacy:
+  # Some data privacy policies will require the platform admins to follow some strict rules regarding the personal data.
+  # In Europe for instance, this will be the case with GDPR. While it doesn't per-se forbid the collection of some
+  # personal data if its used is justified and declared, this requires specific processes (declare the collection in
+  # a GDPR registry for one). This is why sensitive data will be excluded *by default*. You can comment them if you
+  # are aware of the implications and taking care of your obligations in that regard.
+  keys_blacklist:
+    - "user_id"
+    - "user_name"
+    - "client_ip"
+
 database:
   drivername: "postgresql"
   host: "localhost"
@@ -66,8 +77,6 @@ app_processors:
         geojson: "GeoJSON"
         csv: "CSV"
         ooxml: "Excel"
-
-
 
 metrics:
   enabled: false
