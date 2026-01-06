@@ -84,6 +84,7 @@ nav:
             # - technical_guides/installation/tests.md
         - Contribute:
             - technical_guides/contribute/index.md
+            - technical_guides/contribute/analytics-cli.md
             - Documentation:
                 - technical_guides/contribute/documentation/index.md
             - Tutorials:
@@ -95,6 +96,9 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - def_list
 
 plugins:
   - search

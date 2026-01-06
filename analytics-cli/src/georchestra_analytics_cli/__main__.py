@@ -52,7 +52,6 @@ def buffer2db():
     """
     Retrieve the logs data from the database buffer table, process them, write the result into the access_logs
     (hyper)table.
-    :return:
     """
     with s.labels(command="buffer2db").time():
         log_processor = AccessLogProcessor()
@@ -71,10 +70,9 @@ def file2db(file, extra_info):
     """
     Read the logs data from an access log file, process them, write the result into the access_logs
     (hyper)table.
-    Using the (repeatable) --extra_info option, you can provide hardcoded values to include in the parsed lines
+    Using the (repeatable) --extra_info option, you can provide hardcoded values to include in the parsed lines.
     Keys should match keys that will be persisted in the DB, otherwise it will be pretty much useless
     e.g. --extra_info server_address=demo.georchestra.org --extra_info app_id=mapserver
-    :return:
     """
     with s.labels(command="file2db").time():
         split_extras = [x.split("=") for x in extra_info]

@@ -50,7 +50,7 @@ In the Gateway logging configuration log entries are filtered. So, if you don't 
 the log records matching your application will never reach the CLI.
 
 See
-the [configuration instructions regarding the Gateway](/technical_guides/installation/configuration/gateway#configuring-the-gateway-to-produce-enhanced-access-logs).
+the [configuration instructions regarding the Gateway](../../../installation/configuration/gateway.md#configuring-the-gateway-to-produce-enhanced-access-logs).
 
 For instance, for the dataapi, you could use the following filter:
 
