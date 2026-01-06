@@ -17,6 +17,7 @@ performance:
 # But we're not declaring the geoserver path, because it already corresponds to the geoserver app name.
 #
 apps_mapping: { }
+
 # Set this to true if you want to collect logs from multiple DNs. Beware that this will affect the apps_mapping above:
 # the keys will include the DN, in order to distinguish possibly conflicting paths. So, the default keys won't be
 # recognized at all, you will have to be explicit there
@@ -33,6 +34,8 @@ data_privacy:
     - "user_name"
     - "client_ip"
 
+# Database connection parameters. You most likely will want to use a timescaledb-enabled postgresql DB here
+# but since the cli relies on SQLAlchemy, any other DB should work fine (not tested though).
 database:
   drivername: "postgresql"
   host: "localhost"
@@ -42,18 +45,29 @@ database:
   username: "tsdb"
   password: !ENV "${GOA_DB_PASSWORD:secret}"
 
+# Logs parsers config. If running over opentelemetry logs, this is the one you will want to have properly configured.
+# If running on CLF-like log files, you will rely on the text_message parser below.
 parsers:
+  # This is the config for the OpenTelemetry workflow (Vector -> TimescaleDB -> Analytics CLI -> TimescaleDB)
   opentelemetry:
     text_message_parser:
+      # enabling this, the parser will also try to extract information from the textual log message included in the opentelemetry data.
+      # This is mostly useful if you are merging data from different sources and the textual log message might contain additional information.
+      # For instance, see https://docs.georchestra.org/analytics/en/latest/technical_guides/installation/advanced_configurations/gateway_reconcile_netty_logs/
+      # If enabled, the regex used for the text parser will be the one provided here.
       enable: false
       regex: r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app_path>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
 
+  # This is the config for the CLF-like logs workflow (log files -> Analytics CLI -> TimescaleDB)
   text_message:
     regex: r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>\/(?P<app_path>[_a-zA-Z0-9-]+)(\/.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
     # Default response time unit is ms. If using seconds, uncomment this line
-#    response_time_unit: "s"
+    # response_time_unit: "s"
 
+# App-specific processors configuration. This is configuration that will be passed on to each corresponding app
+# processor on runtime. The config keys will depend on the app processors' implementation
 app_processors:
+  # generic processor is not implemented yet, keep it to false
   fallback_on_generic: false
   geoserver:
     infer_is_tiled: true
@@ -78,6 +92,7 @@ app_processors:
         csv: "CSV"
         ooxml: "Excel"
 
+# If enabled, the CLI will publish metrics to a Prometheus pushgateway.
 metrics:
   enabled: false
 

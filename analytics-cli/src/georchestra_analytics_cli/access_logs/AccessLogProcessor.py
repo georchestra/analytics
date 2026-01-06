@@ -26,6 +26,7 @@ class AccessLogProcessor:
     Supports processing from different input sources:
     - buffer table in database
     - classic access log files (CFL or custom format)
+    - generate fake log records for testing purposes
     Writes on a single kind of output: a database table, expected to be a timescaleDB-enabled table.
     """
     config: Config = None

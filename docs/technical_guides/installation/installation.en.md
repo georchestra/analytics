@@ -60,11 +60,32 @@ Vector comes with a yaml configuration file. For the docker and k8s setups, a de
 
 A sample configuration file is provided in the [vector configuration page](configuration/vector.md).
 
-## Python cron task
+## Analytics CLI (python task)
 
-Part of the logs processing will be done by a Python script. Since you want it to be run on a regular basis, you will
-have to make it run as a cron task
+The analytics CLI is a python package that can be used:
 
-TODO: document
+- to process the logs collected by Vector and stored in the TimescaleDB base
+- to process (mostly legacy) file-based log records (CLF-like)
+
+It is the last step of the logs processing, before getting the dashboards. In most cases you want it to be run on a 
+regular basis, which means make it run as a cron task.
+
+### Run the python code in commandline 
+
+If you want to run this in the commandline, your best option is to create a virtualenv and install the package by 
+following the 
+[the CLI's instructions](https://github.com/georchestra/analytics/blob/main/analytics-cli/README.md#install).
+
+While on the virtualenv, check the package works: `analytics-cli --help`.
+
+Then see the configuration section to get an overview of your options.
+
+
+### Run it on a schedule (cron task)
+
+For classic setup and for docker compose setup, your best bet is probably to configure it as a cron task. There is 
+plenty of documentation in the wild about this, it will not be covered here.
+
+For Kubernetes setup, the helm chart should have configured it as a cronjob, so you should be good.
 
 TODO: consider https://github.com/christopher-besch/docker_cron for the docker compose ?
