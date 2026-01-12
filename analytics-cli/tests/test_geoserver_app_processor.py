@@ -37,7 +37,7 @@ def test_geoserver_log_processor():
     assert lp.collect_information(req_path, url_params) == {
         'bbox': '590223.4382724703,4914107.882513998,608462.4604629107,4920523.89081033',
         'format': 'application/openlayers', "workspaces": "sf", 'layers': 'bugsites', 'crs': 'EPSG:26713', 'request': 'getmap',
-        'service': 'WMS', 'size': '768x330', 'version': '1.1.0', 'width':'768', 'height': '330'}
+        'service': 'WMS', 'size': '768x330', 'version': '1.1.0', 'width':'768', 'height': '330', 'tags': ['ogc']}
 
     req_path = "/geoserver/sf/wms"
     url_params = {'format': 'image/png', 'height': '256', 'layers': 'bugsites,protected_areas', 'request': 'getmap',
@@ -46,7 +46,7 @@ def test_geoserver_log_processor():
     assert lp.collect_information(req_path, url_params) == {
         'format': 'image/png', "workspaces": "sf", 'layers': 'bugsites,protected_areas', 'crs': 'EPSG:26713',
         'request': 'getmap',
-        'service': 'WMS', 'size': '256x256', 'version': '1.3.0', 'tiled': True, 'width':'256', 'height': '256'}
+        'service': 'WMS', 'size': '256x256', 'version': '1.3.0', 'tiled': True, 'width':'256', 'height': '256', 'tags': ['ogc']}
 
     assert lp.collect_information_from_url(
         "/geoserver/topp/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&tiled=true&STYLES&LAYERS=topp%3Astates&exceptions=application%2Fvnd.ogc.se_inimage&tilesOrigin=-124.73142200000001%2C24.955967&WIDTH=256&HEIGHT=256&SRS=EPSG%3A4326&BBOX=-92.4609375%2C44.6484375%2C-92.109375%2C45") == {
@@ -64,7 +64,8 @@ def test_geoserver_log_processor():
                'tiled': True,
                'tilesorigin': '-124.73142200000001,24.955967',
                'transparent': 'true',
-               'version': '1.1.1'}
+               'version': '1.1.1',
+                'tags': ['ogc']}
 
 def test_geoserver_log_processor_is_download():
     lp = GeoserverLogProcessor(config={

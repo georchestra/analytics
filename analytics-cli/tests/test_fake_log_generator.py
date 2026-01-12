@@ -11,5 +11,5 @@ def test_fake_log_generator():
     assert record is not None
     assert datetime.fromisoformat(record["ts"]) == dt
     assert record["context_data"]["source_type"] == "fake_log_file"
-    assert record["user_id"] in ["testadmin", "testuser", "testuser2", "testeditor", ]
+    assert record["user_id"] in ["", "testadmin", "testuser", "testuser2", "testeditor", ]
     assert record["status_code"] in [200, 404, 501, 503]

@@ -93,7 +93,8 @@ def test_parse_regex_lines():
             'user_agent_version': '102.0',
             'version': '1.1.0',
             'width': '768',
-            'workspaces': 'sf'
+            'workspaces': 'sf',
+            'tags': ['ogc']
         },
         'request_method': 'GET',
         'request_path': '/geoserver/sf/wms',
@@ -121,15 +122,15 @@ def test_parse_regex_lines():
 def test_parse_regex_multipledn():
     conf = load_config_from(config_file2)
     log_parser = RegexLogParser(conf)
-    log_parser.set_extra_info({"server_address": "demo.georchestra.org", "app_path": "/"})
+    log_parser.set_extra_info({"server_address": "mapserv.georchestra.org", "app_path": "/"})
     record = '127.0.0.1 127.0.1.1 unix:/var/run/mapserv-1.sock - [10/Dec/2025:05:39:15 +0100] "GET /ortho?transparent=True&layers=ortho_2022&format=image%2Fpng&bbox=792478.4366714223,6543339.050380466,792585.9236505884,6543446.537359633&width=1300&height=1300&srs=EPSG%3A2154&request=GetMap&version=1.1.1&service=WMS&styles= HTTP/1.1" 200 2560412 "-" "MapProxy-1.15.1" 0.626'
     expected_parsed_record = {
         'ts': '2025-12-10T05:39:15+01:00',
         'id': 'd963d4e17b84',
         'message': '127.0.0.1 127.0.1.1 unix:/var/run/mapserv-1.sock - [10/Dec/2025:05:39:15 +0100] "GET /ortho?transparent=True&layers=ortho_2022&format=image%2Fpng&bbox=792478.4366714223,6543339.050380466,792585.9236505884,6543446.537359633&width=1300&height=1300&srs=EPSG%3A2154&request=GetMap&version=1.1.1&service=WMS&styles= HTTP/1.1" 200 2560412 "-" "MapProxy-1.15.1" 0.626',
-        'app_id': 'demo.georchestra.org/',
+        'app_id': 'mapserv.georchestra.org/',
         'app_path': '/',
-        'app_name': 'demo.georchestra.org',
+        'app_name': 'mapserver',
         'user_id': None,
         'user_name': None,
         'org_id': None,
@@ -140,14 +141,15 @@ def test_parse_regex_multipledn():
         'request_path': '/ortho',
         'request_query_string': 'transparent=true&layers=ortho_2022&format=image%2fpng&bbox=792478.4366714223,6543339.050380466,792585.9236505884,6543446.537359633&width=1300&height=1300&srs=epsg%3a2154&request=getmap&version=1.1.1&service=wms&styles=',
         'request_details': {'bbox': '792478.4366714223,6543339.050380466,792585.9236505884,6543446.537359633',
-                            'format': 'image/png', 'height': '1300', 'layers': 'ortho_2022', 'request': 'getmap',
-                            'service': 'wms', 'srs': 'epsg:2154', 'transparent': 'true',
-                            'user_agent_string': 'MapProxy-1.15.1', 'version': '1.1.1', 'width': '1300'},
+                            'format': 'image/png', 'height': '1300', 'layers': 'ortho_2022', 'workspaces': '/ortho',
+                            'request': 'getmap', 'service': 'WMS', 'crs': 'EPSG:2154', 'transparent': 'true',
+                            'user_agent_string': 'MapProxy-1.15.1', 'version': '1.1.1', 'width': '1300',
+                            'size': '1300x1300', 'tags': ['ogc']},
         'response_time': 626,
         'response_size': 2560412,
         'status_code': 200,
         'client_ip': '127.0.0.1',
-        'server_address': 'demo.georchestra.org',
+        'server_address': 'mapserv.georchestra.org',
         'context_data': {'source_type': 'access_log_file'},
 
     }

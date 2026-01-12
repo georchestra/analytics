@@ -19,7 +19,7 @@ def test_collect_information():
     assert lp.collect_information(req_path, url_params) == {
         'bbox': '795123.443181826,6545984.05689087,795338.4171401582,6546199.030849202',
         'format': 'image/png', "workspaces": "/ortho", 'layers': 'ortho_2022', 'crs': 'EPSG:2154', 'request': 'getmap',
-        'service': 'WMS', 'size': '1300x1300', 'version': '1.1.1', 'width':'1300', 'height': '1300', 'styles': '', 'transparent': 'True'}
+        'service': 'WMS', 'size': '1300x1300', 'version': '1.1.1', 'width':'1300', 'height': '1300', 'styles': '', 'transparent': 'True', 'tags': ['ogc']}
 
 def test_collect_information_is_tiled():
     lp = MapserverLogProcessor(config={
@@ -30,7 +30,7 @@ def test_collect_information_is_tiled():
     assert lp.collect_information(req_path, url_params) == {
         'bbox': '795123.443181826,6545984.05689087,795338.4171401582,6546199.030849202',
         'format': 'image/png', "workspaces": "/ortho", 'layers': 'ortho_2022', 'crs': 'EPSG:2154', 'request': 'getmap',
-        'service': 'WMS', 'size': '512x512', 'version': '1.1.1', 'width':'512', 'height': '512', 'styles': '', 'transparent': 'True', "tiled": True}
+        'service': 'WMS', 'size': '512x512', 'version': '1.1.1', 'width':'512', 'height': '512', 'styles': '', 'transparent': 'True', "tiled": True, 'tags': ['ogc']}
 
 def test_collect_information_is_download():
     lp = MapserverLogProcessor(config={

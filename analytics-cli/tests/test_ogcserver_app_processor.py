@@ -43,7 +43,7 @@ def test_collect_information_from_url():
     assert lp.collect_information_from_url("https://demo.georchestra.org/geoserver/wms?service=wms&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=base:roads&STYLES=base:roads&CRS=EPSG%3A3857&WIDTH=2304&HEIGHT=1084&BBOX=715133.0164035556%2C6042414.756063141%2C1074822.6263080558%2C6211643.721834183") == {
         "service": "WMS", "request": "getmap", "version": "1.3.0", "format": "image/png", "layers": "base:roads",
         'styles': 'base:roads', 'bbox': '715133.0164035556,6042414.756063141,1074822.6263080558,6211643.721834183',
-        'crs': 'EPSG:3857', 'height': '1084', 'width': '2304', 'size': '2304x1084', 'transparent': 'true',
+        'crs': 'EPSG:3857', 'height': '1084', 'width': '2304', 'size': '2304x1084', 'transparent': 'true', 'tags': ['ogc']
     }
 
 def test_collect_information_from_url_with_tiled():
@@ -52,7 +52,7 @@ def test_collect_information_from_url_with_tiled():
     assert lp.collect_information_from_url("https://demo.georchestra.org/geoserver/wms?service=wms&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=base:roads&STYLES=base:roads&CRS=EPSG%3A3857&WIDTH=256&HEIGHT=256&BBOX=312735.5839256644%2C5941976.09458765%2C625471.1678513302%2C6254711.678513316") == {
         "service": "WMS", "request": "getmap", "version": "1.3.0", "format": "image/png", "layers": "base:roads",
         'styles': 'base:roads', 'bbox': '312735.5839256644,5941976.09458765,625471.1678513302,6254711.678513316',
-        'crs': 'EPSG:3857', 'height': '256', 'width': '256', 'size': '256x256', 'transparent': 'true', 'tiled': True
+        'crs': 'EPSG:3857', 'height': '256', 'width': '256', 'size': '256x256', 'transparent': 'true', 'tiled': True, 'tags': ['ogc']
     }
 
 def test_collect_information_plain():
@@ -60,7 +60,7 @@ def test_collect_information_plain():
     lp = OgcserverLogProcessor(app_path="ogc", config=conf.get_app_processors_config().get("ogcserver", {}))
     assert lp.collect_information("/ogc/ows",
                                   {"service": "WMS", "version":"1.3.0", "request": "getMap", "FORMAT": "image%2Fpng", "layers": "ortho2025"}) == {
-        "service": "WMS", "request": "getmap", "version": "1.3.0", "format": "image%2Fpng", "layers": "ortho2025"
+        "service": "WMS", "request": "getmap", "version": "1.3.0", "format": "image%2Fpng", "layers": "ortho2025", 'tags': ['ogc']
     }
 
 def test_collect_information_with_download():
@@ -68,6 +68,6 @@ def test_collect_information_with_download():
     lp = OgcserverLogProcessor(app_path="ogc", config=conf.get_app_processors_config().get("ogcserver", {}))
     assert lp.collect_information("/ogc/ows",
                                   {"service": "WFS", "request": "getFeature", "outputFormat": "excel"}) == {
-        "service": "WFS", "request": "getfeature", "outputformat": "excel", "download_format": "Excel", "is_download": True
+        "service": "WFS", "request": "getfeature", "outputformat": "excel", "download_format": "Excel", "is_download": True, 'tags': ['ogc']
     }
 
