@@ -1,6 +1,4 @@
-import importlib
 import logging
-import timeit
 from logging.config import dictConfig
 from datetime import datetime, timedelta, timezone
 
@@ -88,9 +86,9 @@ def file2db(file, extra_info):
 
 @cli.command()
 @click.option("--start",
-              help='Start datetime to start generating fake data. ISO format, in UTC timezone. Defaults to now - 1 hour.',
+              help='Start datetime to start generating fake data. ISO format, can be timezone-aware, e.g. 2026-01-01T12:23 CET. Defaults to now in UTC -1 hour.',
               type=str)
-@click.option("--stop", help='Stop datetime for generating fake data. ISO format, in UTC timezone. Defaults to now.',
+@click.option("--stop", help='Stop datetime for generating fake data. ISO format, can be timezone-aware. Defaults to now in UTC.',
               type=str)
 @click.option("--last_n_hours", help="Sets start to `stop` - n hours (this case supposes you don't set start time",
               type=int, default=1)
@@ -103,16 +101,18 @@ def fake2db(start: str = None, stop: str = None, last_n_hours: int = 1, rate: in
     :return:
     """
     global conf
+    import pytz
+    tz = pytz.timezone(conf.get_timezone())
     with s.labels(command="fake2db").time():
         import dateutil.parser as date_parser
-        if start is not None:
-            start_ts = date_parser.parse(start)
-        else:
-            start_ts = datetime.now(timezone.utc) - timedelta(hours=last_n_hours)
         if stop is not None:
             stop_ts = date_parser.parse(stop)
         else:
-            stop_ts = datetime.now(timezone.utc)
+            stop_ts = datetime.now(tz)
+        if start is not None:
+            start_ts = date_parser.parse(start)
+        else:
+            start_ts = stop_ts - timedelta(hours=last_n_hours)
 
         log_processor = AccessLogProcessor()
         log_processor.fake_log_records(start_ts, stop_ts, int(rate))

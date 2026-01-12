@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Optional, List
 
-from sqlalchemy import MetaData, String, Integer, UniqueConstraint, Index
+from sqlalchemy import MetaData, String, Integer, UniqueConstraint, Index, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
@@ -26,7 +26,7 @@ class OpentelemetryAccessLogRecord(MappedAsDataclass, Base):
 
     __tablename__ = "opentelemetry_buffer"
 
-    timestamp: Mapped[datetime] = mapped_column(primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     span_id: Mapped[Optional[str]] = mapped_column(primary_key=True)
     trace_id: Mapped[Optional[str]]
     message: Mapped[str] = mapped_column()

@@ -150,6 +150,9 @@ cli:
       batch_size: 10000
 
     apps_mapping: {}
+    
+    # It is best to set this to your local timezone so that any time-related handling have the best chance to be handled  with proper time offsets.
+    timezone: "Europe/Paris"
 
     database:
       drivername: "postgresql"

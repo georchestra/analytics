@@ -4,6 +4,9 @@ performance:
   # Publish in DB by batches
   batch_size: 10000
 
+# It is best to set this to your local timezone so that any time-related handling have the best chance to be handled  with proper time offsets.
+timezone: "Europe/Paris"
+
 # apps_mapping is a dict of app_path:app_name, used to determine which *software* is running for a given path.
 # Apps which path match the app name don't have to be listed, unless using multiple DN support, see below.
 # App names have to match the name used in this project's app_processors subpackage.

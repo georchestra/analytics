@@ -10,6 +10,9 @@ performance:
   # Publish in DB by batches
   batch_size: 10000
 
+# It is best to set this to your local timezone so that any time-related handling have the best chance to be handled  with proper time offsets.
+timezone: "Europe/Paris"
+
 data_privacy:
   # Some data privacy policies will require the platform admins to follow some strict rules regarding the personal data.
   # In Europe for instance, this will be the case with GDPR. While it doesn't per-se forbid the collection of some

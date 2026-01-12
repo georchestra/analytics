@@ -1,10 +1,10 @@
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import create_engine, func, desc, asc, select
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 
@@ -49,7 +49,7 @@ class AccessLogProcessor:
         """
         self.log_parser = OpentelemetryLogParser(self.config)
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         with self.get_session() as session:
             offset = 0
             count_rows_stmt = select(func.count(OpentelemetryAccessLogRecord.span_id)).where(OpentelemetryAccessLogRecord.timestamp < now)
@@ -126,6 +126,7 @@ class AccessLogProcessor:
                 if len(processed_log_records) > 0:
                     self.upsert_log_records(session, processed_log_records)
 
+
             except SQLAlchemyError as e:
                 # For now, a commit error will lead to the loss of the full batch (see self.batch_size)
                 logger.error(f"Error deleting files from the buffer table: {e}")
@@ -133,7 +134,7 @@ class AccessLogProcessor:
 
     def get_session(self)->Session:
         if not self.db_engine:
-            self.db_engine = create_engine(self.config.get_db_connection_string())
+            self.db_engine = create_engine(self.config.get_db_connection_string() )
             # Base.metadata.create_all(self.db_engine, checkfirst=True)
         if not self.Session:
             self.Session = sessionmaker(self.db_engine)
@@ -179,26 +180,23 @@ class AccessLogProcessor:
         with self.get_session() as session:
             processed_log_records = list()
             try:
-                while start < stop_time:
+                while start <  stop_time:
                     nb_records = random.randint(0, max_rate)
                     for _ in range(nb_records):
-                        ts = start.timestamp() + random.randint(0, 3600)
-                        record = self.log_parser.parse(datetime.fromtimestamp(ts))
+                        st = start.astimezone(timezone.utc) + timedelta(seconds = random.randint(0, 3600))
+                        record = self.log_parser.parse(st)
                         processed_log_records.append(record)
 
                         if processed_log_records and len(processed_log_records) % self.batch_size == 0:
                             logger.debug(f"Upserting {len(processed_log_records)} log records")
                             self.upsert_log_records(session, processed_log_records)
-                    logger.debug(f"[{start.strftime('%m/%d/%Y, %H')} h] Generated {nb_records} log records")
+                    logger.debug(f"[{start.strftime('%m/%d/%Y, %H:%M %Z')} - {(start + timedelta(hours=1)).strftime('%m/%d/%Y, %H:%M %Z')}] Generated {nb_records} log records")
                     start = start + timedelta(hours=1)
 
                 # Last commit at the end of the loop, commit remaining batch
                 if len(processed_log_records) > 0:
                     self.upsert_log_records(session, processed_log_records)
-
             except SQLAlchemyError as e:
                 # For now, a commit error will lead to the loss of the full batch (see self.batch_size)
-                logger.error(f"Error deleting files from the buffer table: {e}")
+                logger.error(f"Error loading fake data into the table: {e}")
                 session.rollback()
-
-

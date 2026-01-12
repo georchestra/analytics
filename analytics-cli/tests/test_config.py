@@ -55,3 +55,7 @@ def test_config_keys_blacklist():
 def test_config_keys_blacklist_empty():
     conf = load_config_from(config_multiple_dn)
     assert conf.get_keys_blacklist() == []
+
+def test_config_timezone():
+    conf = load_config_from(config_multiple_dn)
+    assert conf.get_timezone() == "Indian/Kerguelen"

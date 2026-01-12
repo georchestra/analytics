@@ -104,6 +104,8 @@ class Config:
     def is_supporting_multiple_dn(self) -> bool:
         return self.config.get("support_multiple_dn", False)
 
+    def get_timezone(self) -> str:
+        return self.config.get("timezone", "UTC")
 
 def get_config(config_path: str | None = None) -> Config:
     global config

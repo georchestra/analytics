@@ -4,6 +4,8 @@ performance:
   # Publish in DB by batches
   batch_size: 100
 
+timezone: "Indian/Kerguelen"
+
 database:
   drivername: "postgresql"
   host: "localhost"
