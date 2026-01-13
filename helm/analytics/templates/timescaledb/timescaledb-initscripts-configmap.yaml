@@ -115,7 +115,7 @@ data:
     -- set compression
     -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
     SELECT add_continuous_aggregate_policy('analytics.ogc_summary_hourly',
-      initial_start => '2025-11-11 00:00:05',
+      initial_start => '2025-11-11 00:05:05',
       start_offset => INTERVAL '7 days',
       end_offset => INTERVAL '0 hours',
       schedule_interval => INTERVAL '1 hour');
