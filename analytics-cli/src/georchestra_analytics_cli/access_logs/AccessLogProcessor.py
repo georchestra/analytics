@@ -33,11 +33,12 @@ class AccessLogProcessor:
     db_engine = None
     Session: sessionmaker = None
     log_parser: AbstractLogParser = None
-
+    keys_blacklist: list = []
 
     def __init__(self):
         self.config = get_config()
         self.batch_size = self.config.get_batch_size()
+        self.keys_blacklist = self.config.get_keys_blacklist()
 
     def process_buffer_table(self):
         """
@@ -108,9 +109,14 @@ class AccessLogProcessor:
                         break
 
                     lr = self.log_parser.parse(line)
+                    if self.keys_blacklist:
+                        # Cover data_privacy issues by allowing to blacklist (not collect) some sensitive data if necessary
+                        for k in self.keys_blacklist:
+                            lr.pop(k, None)
                     if lr is not None:
                         lr["context_data"]["source"] = log_file_path
                         processed_log_records.append(lr)
+
 
                     if processed_log_records and len(processed_log_records) % self.batch_size == 0:
                         self.upsert_log_records(session, processed_log_records)

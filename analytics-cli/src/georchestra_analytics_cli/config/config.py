@@ -89,6 +89,9 @@ class Config:
     def get_batch_size(self) -> int:
         return self.config["performance"].get("batch_size", 1000)
 
+    def get_keys_blacklist(self) -> list[str]:
+        return self.config["data_privacy"].get("keys_blacklist", [])
+
     def get_app_processors_config(self) -> dict[str, Any]:
         return self.config.get("app_processors", {})
 

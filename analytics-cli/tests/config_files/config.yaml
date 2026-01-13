@@ -16,6 +16,12 @@ database:
 apps_mapping:
   "/data/": dataapi
 
+data_privacy:
+  keys_blacklist:
+    - "user_id"
+    - "user_name"
+    - "roles"
+
 parsers:
   opentelemetry:
     text_message_parser:
