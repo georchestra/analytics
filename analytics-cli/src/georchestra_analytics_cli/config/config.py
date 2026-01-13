@@ -72,13 +72,13 @@ class Config:
         """
         return self.config.get("apps_mapping", {})
 
-    def what_app_is_it(self, app_path: str):
+    def what_app_is_it(self, app_id: str):
         """
         If a mapping matches (taken from config) return the mapped app name.
-        Else, the path is considered as the app name.
+        Else, the path is considered as the app name (less the trailing slashes)
         """
         app_mappings = self.config.get("apps_mapping", {})
-        return app_mappings.get(app_path, app_path)
+        return app_mappings.get(app_id, app_id.strip("/"))
 
     def get_parser_config_opentelemetry(self) -> dict[str, Any]:
         return self.config["parsers"].get("opentelemetry", {})
@@ -97,6 +97,9 @@ class Config:
 
     def get_metrics_metrics_file_path(self) -> str:
         return self.config["metrics"].get("metrics_file_path")
+
+    def is_supporting_multiple_dn(self) -> bool:
+        return self.config.get("support_multiple_dn", False)
 
 
 def get_config(config_path: str | None = None) -> Config:

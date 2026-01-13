@@ -2,10 +2,8 @@ import os
 
 from georchestra_analytics_cli.config import Config, get_config, load_config_from
 
-config_file = os.path.join(os.path.dirname(__file__), "config_files/test_config.yaml")
-config_db_file = os.path.join(os.path.dirname(__file__), "config_files/test_config_db.yaml")
-config_db_file2 = os.path.join(os.path.dirname(__file__), "config_files/test_config_db2.yaml")
-config_strategy2 = os.path.join(os.path.dirname(__file__), "config_files/wrong_strategy.yaml")
+config_file = os.path.join(os.path.dirname(__file__), "config_files/config.yaml")
+config_multiple_dn = os.path.join(os.path.dirname(__file__), "config_files/config_multiple_dn.yaml")
 
 
 def test_config_default():
@@ -37,3 +35,15 @@ def test_config_db_env():
     assert conf.get_db_connection_string().render_as_string(
         False) == "postgresql://tsdb:secretpassword@localhost:5433/analytics"
     os.environ.pop("DB_SECRET")
+
+def test_config_app_mapping_basic():
+    conf = load_config_from(config_file)
+    assert conf.what_app_is_it("/geoserver/") == "geoserver"
+    assert conf.what_app_is_it("/data/") == "dataapi"
+
+def test_config_app_mapping_multiple_dn():
+    conf = load_config_from(config_multiple_dn)
+    assert conf.what_app_is_it("demo.georchestra.org/catalog/") == "geonetwork"
+    assert conf.what_app_is_it("mapserv.georchestra.org/") == "mapserver"
+    # This one covers a non-delcared mapping
+    assert conf.what_app_is_it("mapproxy.georchestra.org/") == "mapproxy.georchestra.org"

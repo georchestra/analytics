@@ -1,12 +1,16 @@
 SET search_path = analytics, public;
 
-CREATE MATERIALIZED VIEW analytics.geoserver_summary_hourly
+CREATE MATERIALIZED VIEW analytics.ogc_summary_hourly
 WITH (timescaledb.continuous) AS
 SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly,
+    app_id,
+    app_name,
     user_name,
     org_name,
     request_method,
     status_code,
+    server_address,
+    request_details ->> 'workspaces' AS workspaces,
     request_details ->> 'layers' AS layers,
     request_details ->> 'service'            AS service,
     request_details ->> 'request'            AS request,
@@ -18,8 +22,9 @@ SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly,
     AVG(response_time)                      AS avg_time,
     percentile_agg(response_time::DOUBLE PRECISION)         AS percentile_hourly
 FROM analytics.access_logs
-WHERE app_name = 'geoserver'
-GROUP BY bucket_hourly, user_name, org_name, request_method, status_code, request_details ->> 'layers',
+WHERE request_details ->'tags' @> '["ogc"]'
+GROUP BY bucket_hourly, app_id, app_name, user_name, org_name, request_method, status_code, server_address,
+    request_details ->> 'workspaces', request_details ->> 'layers',
     request_details ->> 'service', request_details ->> 'request' , request_details ->> 'tiled',
     request_details ->> 'is_download', request_details ->> 'download_format', request_details ->> 'user_agent_family';
 
@@ -27,93 +32,101 @@ GROUP BY bucket_hourly, user_name, org_name, request_method, status_code, reques
 -- https://docs.timescale.com/use-timescale/latest/continuous-aggregates/hierarchical-continuous-aggregates/#roll-up-calculations
 
 
-SELECT add_retention_policy('analytics.geoserver_summary_hourly', drop_after => INTERVAL '3 weeks', schedule_interval => INTERVAL '1 day');
+SELECT add_retention_policy('analytics.ogc_summary_hourly', drop_after => INTERVAL '3 weeks', schedule_interval => INTERVAL '1 day');
 
 -- set compression
 -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
-SELECT add_continuous_aggregate_policy('analytics.geoserver_summary_hourly',
+SELECT add_continuous_aggregate_policy('analytics.ogc_summary_hourly',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '7 days',
   end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 hour');
-ALTER MATERIALIZED VIEW analytics.geoserver_summary_hourly set (timescaledb.compress = true);
-SELECT add_compression_policy('analytics.geoserver_summary_hourly', compress_after=>'4 days'::interval);
+ALTER MATERIALIZED VIEW analytics.ogc_summary_hourly set (timescaledb.compress = true);
+SELECT add_compression_policy('analytics.ogc_summary_hourly', compress_after=>'4 days'::interval);
 
 
-CREATE MATERIALIZED VIEW analytics.geoserver_summary_daily
+CREATE MATERIALIZED VIEW analytics.ogc_summary_daily
 WITH (timescaledb.continuous) AS
 SELECT  time_bucket(INTERVAL '1 d', bucket_hourly, 'Europe/Paris') AS bucket_daily,
-        user_name,
-        org_name,
-        request_method,
-        status_code,
-        layers,
-        service,
-        request,
-        tiled,
-        is_download,
-        download_format,
-        user_agent_family,
-        SUM(nb_req)                               AS nb_req,
-        mean(rollup(percentile_hourly))   AS avg_time,
-        rollup(percentile_hourly) as percentile_daily
-FROM analytics.geoserver_summary_hourly
-GROUP BY bucket_daily, user_name, org_name, request_method, status_code, layers, service, request, tiled, is_download,
-         download_format, user_agent_family;
+    app_id,
+    app_name,
+    user_name,
+    org_name,
+    request_method,
+    status_code,
+    server_address,
+    workspaces,
+    layers,
+    service,
+    request,
+    tiled,
+    is_download,
+    download_format,
+    user_agent_family,
+    SUM(nb_req)                       AS nb_req,
+    mean(rollup(percentile_hourly))   AS avg_time,
+    rollup(percentile_hourly) as percentile_daily
+FROM analytics.ogc_summary_hourly
+GROUP BY bucket_daily, app_id, app_name, user_name, org_name, request_method, status_code, server_address, workspaces,
+     layers, service, request, tiled, is_download, download_format, user_agent_family;
 
-SELECT add_retention_policy('analytics.geoserver_summary_daily', drop_after => INTERVAL '2 years', schedule_interval => INTERVAL '1 week');
+SELECT add_retention_policy('analytics.ogc_summary_daily', drop_after => INTERVAL '2 years', schedule_interval => INTERVAL '1 week');
 
 -- set compression
 -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
-SELECT add_continuous_aggregate_policy('analytics.geoserver_summary_daily',
+SELECT add_continuous_aggregate_policy('analytics.ogc_summary_daily',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 d');
-ALTER MATERIALIZED VIEW analytics.geoserver_summary_daily set (timescaledb.compress = true);
-SELECT add_compression_policy('analytics.geoserver_summary_daily', compress_after=>'4 weeks'::interval);
+ALTER MATERIALIZED VIEW analytics.ogc_summary_daily set (timescaledb.compress = true);
+SELECT add_compression_policy('analytics.ogc_summary_daily', compress_after=>'4 weeks'::interval);
 
 
 
-CREATE MATERIALIZED VIEW analytics.geoserver_summary_monthly
+CREATE MATERIALIZED VIEW analytics.ogc_summary_monthly
 WITH (timescaledb.continuous) AS
 SELECT  time_bucket(INTERVAL '1 month', bucket_daily, 'Europe/Paris') AS bucket_monthly,
-        user_name,
-        org_name,
-        request_method,
-        status_code,
-        layers,
-        service,
-        request,
-        tiled,
-        is_download,
-        download_format,
-        user_agent_family,
-        SUM(nb_req)                               AS nb_req,
-        mean(rollup(percentile_daily))   AS avg_time,
-        rollup(percentile_daily) as percentile_monthly
-FROM analytics.geoserver_summary_daily
-GROUP BY bucket_monthly, user_name, org_name, request_method, status_code, layers, service, request, tiled, is_download,
-         download_format, user_agent_family;
+    app_id,
+    app_name,
+    user_name,
+    org_name,
+    request_method,
+    status_code,
+    server_address,
+    workspaces,
+    layers,
+    service,
+    request,
+    tiled,
+    is_download,
+    download_format,
+    user_agent_family,
+    SUM(nb_req)                      AS nb_req,
+    mean(rollup(percentile_daily))   AS avg_time,
+    rollup(percentile_daily) as percentile_monthly
+FROM analytics.ogc_summary_daily
+GROUP BY bucket_monthly, app_id, app_name, user_name, org_name, request_method, status_code, server_address, workspaces,
+     layers, service, request, tiled, is_download, download_format, user_agent_family;
 
 -- set compression
 -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
-SELECT add_continuous_aggregate_policy('analytics.geoserver_summary_monthly',
+SELECT add_continuous_aggregate_policy('analytics.ogc_summary_monthly',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '6 months',
   end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 month');
-ALTER MATERIALIZED VIEW analytics.geoserver_summary_monthly set (timescaledb.compress = true);
-SELECT add_compression_policy('analytics.geoserver_summary_monthly', compress_after=>'7 months'::interval);
+ALTER MATERIALIZED VIEW analytics.ogc_summary_monthly set (timescaledb.compress = true);
+SELECT add_compression_policy('analytics.ogc_summary_monthly', compress_after=>'7 months'::interval);
 
 
-CALL refresh_continuous_aggregate('analytics.geoserver_summary_hourly', '2021-05-01', '2025-05-14');
-CALL refresh_continuous_aggregate('analytics.geoserver_summary_daily', '2021-05-01', '2025-05-14');
-CALL refresh_continuous_aggregate('analytics.geoserver_summary_monthly', '2021-05-01', '2025-05-14');
+CALL refresh_continuous_aggregate('analytics.ogc_summary_hourly', '2021-05-01', '2026-05-14');
+CALL refresh_continuous_aggregate('analytics.ogc_summary_daily', '2021-05-01', '2026-05-14');
+CALL refresh_continuous_aggregate('analytics.ogc_summary_monthly', '2021-05-01', '2026-05-14');
 
 
 -- Watch retention policies state (see https://docs.timescale.com/api/latest/data-retention/add_retention_policy/#add_retention_policy):
--- SELECT j.hypertable_name,                                                                       
+-- SELECT j.hypertable_name,
 --        j.job_id,
 --        config,
 --        schedule_interval,
@@ -128,5 +141,3 @@ CALL refresh_continuous_aggregate('analytics.geoserver_summary_monthly', '2021-0
 --   JOIN timescaledb_information.job_stats js
 --     ON j.job_id = js.job_id
 --   WHERE j.proc_name = 'policy_retention';
-
-

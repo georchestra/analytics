@@ -1,0 +1,55 @@
+title: "Analytics CLI config file"
+
+performance:
+  # Publish in DB by batches
+  batch_size: 100
+
+apps_mapping:
+  "/data/": dataapi
+
+app_processors:
+  fallback_on_generic: false
+  ogcserver:
+    infer_is_tiled: true
+    infer_is_download: true
+    download_formats:
+      vector:
+        # List of formats with a human-friendly label. Keys (format name) should match the WFS Getfeature supported
+        # outputFormats but *in lowercase*
+        shape-zip: "Shapefile"
+        "application/json": "JSON"
+        csv: "CSV"
+        excel: "Excel"
+        excel2007: "Excel"
+      raster:
+        # List of formats with a human-friendly label. Keys (format name) should match the WCS GetCoverage supported
+        # formats but *in lowercase*
+        jpeg: "JPEG"
+        gif: "GIF"
+        png: "PNG"
+        tif: "Tiff"
+        geotiff: "GeoTiff"
+        "application/gml+xml": "GML Coverage"
+        "application/x-netcdf": "NetCDF"
+  geoserver:
+    infer_is_tiled: true
+    infer_is_download: true
+    download_formats:
+      vector:
+        # List of formats with a human-friendly label. Keys (format name) should match the WFS Getfeature supported
+        # outputFormats but *in lowercase*
+        shape-zip: "Shapefile"
+        "application/json": "JSON"
+        csv: "CSV"
+        excel: "Excel"
+        excel2007: "Excel"
+  datapi:
+    download_formats:
+      vector:
+        # List of formats with a human-friendly label. Keys (format name) should match the WFS Getfeature supported
+        # outputFormats but *in lowercase*
+        shapefile: "Shapefile"
+        json: "JSON"
+        geojson: "GeoJSON"
+        csv: "CSV"
+        ooxml: "Excel"
