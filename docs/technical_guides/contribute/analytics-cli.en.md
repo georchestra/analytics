@@ -70,14 +70,14 @@ For now, apart from the dataapi app processor, all the implementations are about
 software.
 
 You can look at the dataapi processor for a very simple use-case. 
-[A tutorial covers its implementation](./tutorials/add_a_new_app_processor/).
+[A tutorial covers its implementation](./tutorials/add_a_new_app_processor/index.md).
 
 The app processors add an extra-level of parsing to extract the app-specific information. This information is ultimately 
 stored in the `request_details` field.
 
 ### Implementing a new app processor
 
-You can have a look at the tutorial: [dataapi tutorial](./tutorials/add_a_new_app_processor/).
+You can have a look at the tutorial: [dataapi tutorial](./tutorials/add_a_new_app_processor/index.md).
 
 You can also have a look at how the OGC apps are covered.
 

@@ -1,18 +1,14 @@
 # User guide index
 
-This page is dedicated to the summary of the component's user guide, that is to say the reference documentation which describes all the functionalities and tools of the component intended for **users**.
-The table of contents for the guide is embedded here.
+Usage analytics is mostly a matter of platform administrator. _User_, here, refers to a platform admin.  
+However, there are different kinds of _administrator_, depending on how much access you have to the configuration of the
+used software.
 
-**Recommendations**:
+Some parts of this documentation might not be accessible to you, depending on this level of access.
 
-- After this page, start with a "Global View" part of the tool which presents the main window of the component.
-- Add as many screenshots as possible to illustrate. Images are stored in the `images` directory.
-
-Example of guide tree for Mapstore2:
-
-- Global view of the component
-- Manage layer settings
-- The attribute table
-- The menu bar
-- Print a card
-...
+- [Usage analytics dashboard on Apache Superset](superset_dashboard.en.md). This one provide you with the default set of
+  information you can expect.
+- [Creating new dataviz](./new_dataviz.md)
+- [TimescaleDB: creating new aggregated views](./aggregated_views.md)
+- [Collecting access logs from several sources](multiple_log_sources.md)
+  ...

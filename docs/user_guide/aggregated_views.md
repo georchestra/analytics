@@ -1,56 +1,22 @@
-# Syntax Help
+# Creating additional DB aggregated views
 
-This page is here to help writers get acquainted with the markdown syntax itself enhanced by mkdocs and its plugins.
+Aggregated views are a TimescaleDB feature. Their reason to exist is to provide a means to query data from a table that
+is quickly an ever-increasing over time. At some point, the source table gets bloated and the database unresponsive.
+Aggregated views are a part of TimescaleDB's response to this challenge. To read more about it, please fetch
+the [TigerData documentation](https://www.tigerdata.com/docs/use-timescale/latest/continuous-aggregates).
 
-Refer to [this site](https://www.markdownguide.org/basic-syntax/) for more comprehensive examples of Markdown syntax.
+## Creating an aggregated view
+First, you need a write access to the DB.
 
+Then, you should read the [official documentation](https://www.tigerdata.com/docs/use-timescale/latest/continuous-aggregates) to know more about it.
 
+At last, you can get inspired by the OGC_summary views, their DDL can be found on the 
+[project's repository](https://github.com/georchestra/analytics/blob/main/config/analytics/db.entrypoints.d/101_analytics_ogc_views.sql).
 
-## Headings and Hierarchy
+Some things that you need to consider when creating an aggregated view:
 
+- the time bucket grain
+- the timezone to use on the time bucket. Depending on the time resolution, it might be of importance or not. A few-hours shift might go unnoticed on monthly aggregates. On hourly aggregates it should even be unrelevant. On daily aggregates though, it might be of importance, whether this activity peak happened early in the morning or, maybe, late in the evening the previous day.
+- compression, if enabled, should improve storage, specially on long-term aggregates
+- continuous aggregate policy determines which frequency the view wil be updated at, and the period of time covered for the refresh.
 
-## Images
-
-Place images in the `images` directory at the same level as the markdown file.
-
-`![georchestra logo](images/georchestra-logo.svg)`
-
-![georchestra logo](images/georchestra-logo.svg)
-
-
-
-## Links
-
-
-## Notes, Warnings
-
-To obtain specific blocks to draw the reader's attention, you need to:
-
-- Install the Python module `mkdocs-callouts`
-- In the `mkdocs.yml` file: add `markdown_extensions` and a `plugin` (default declared)
-
-See [https://squidfunk.github.io/mkdocs-material/reference/admonitions/](https://squidfunk.github.io/mkdocs-material/reference/admonitions/) for more information.
-
-Examples below, check the markdown file for the source code.
-
-
-!!! note "Note"
-
-    Logoden biniou welcome. December or huzh. Some specific number. Ler ugent ma. Meurzh understanding koll. Dreuz Egineg an. An kas gortoz. C’higer mouezh Gerveur. Nor ur alies. Drezoc'h gwengolo kuzuliañ.
-
-    Mestr kemmañ talvezout. Anezhañ kenavo tasenn. Neud laezh tarv. Warnomp an bleun. Vuoc’h da Plouneour-Menez. Bouton votez ac’hano. Huñvre c’hof poazhañ. Da pevar muiañ. Doñjer gouel alc’houez. Pluenn siminal hed.
-
-
-
-!!! tip "Tip"
-
-    Logoden biniou welcome. December or huzh. Some specific number. Ler ugent ma. Meurzh understanding koll. Dreuz Egineg an. An kas gortoz. C’higer mouezh Gerveur. Nor ur alies. Drezoc'h gwengolo kuzuliañ.
-
-    Mestr kemmañ talvezout. Anezhañ kenavo tasenn. Neud laezh tarv. Warnomp an bleun. Vuoc’h da Plouneour-Menez. Bouton votez ac’hano. Huñvre c’hof poazhañ. Da pevar muiañ. Doñjer gouel alc’houez. Pluenn siminal hed.
-
-
-!!! warning "Warning"
-
-    Logoden biniou welcome. December or huzh. Some specific number. Ler ugent ma. Meurzh understanding koll. Dreuz Egineg an. An kas gortoz. C’higer mouezh Gerveur. Nor ur alies. Drezoc'h gwengolo kuzuliañ.
-
-    Mestr kemmañ talvezout. Anezhañ kenavo tasenn. Neud laezh tarv. Warnomp an bleun. Vuoc’h da Plouneour-Menez. Bouton votez ac’hano. Huñvre c’hof poazhañ. Da pevar muiañ. Doñjer gouel alc’houez. Pluenn siminal hed.

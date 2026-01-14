@@ -53,16 +53,16 @@ extra_javascript:
 nav:
     - Home: index.md
     - User guide:
-        - Index: user_guide/index.md
-        - Getting started: user_guide/getting_started.md
-        - Global overview: user_guide/global_overview.md
-        - Menus and toolbars: user_guide/tools.md
-        - Syntax help: user_guide/syntax_help.md
+        - User guide: user_guide/index.md
+        - Default usage analytics dashboard: user_guide/superset_dashboard.md
+        - Creating new dataviz: user_guide/new_dataviz.md
+        - TimescaleDB, creating new aggregated view: user_guide/aggregated_views.md
+        - Collecting access logs from several sources: user_guide/multiple_log_sources.md
     - Technical guides:
         - Index: technical_guides/index.md
-        - Administration:
-            - technical_guides/administration/index.md
-            - technical_guides/administration/one_page.md
+#        - Administration:
+#            - technical_guides/administration/index.md
+#            - technical_guides/administration/one_page.md
         - Installation:
             - technical_guides/installation/index.md
             - technical_guides/installation/presentation.md

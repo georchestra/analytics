@@ -29,4 +29,3 @@ For now, the collection of the usage data only relies on the access logs. In the
 
 
 ![overview](d2/overview.svg)
-TODO: recreate this graph with real analytics dash
