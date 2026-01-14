@@ -60,9 +60,9 @@ spec:
             - mountPath: /docker-entrypoint-initdb.d/100_analytics_init.sql
               name: timescaledb-initscripts
               subPath: 100_analytics_init.sql
-            - mountPath: /docker-entrypoint-initdb.d/101_analytics_geoserver_views.sql
+            - mountPath: /docker-entrypoint-initdb.d/101_analytics_ogc_views.sql
               name: timescaledb-initscripts
-              subPath: 101_analytics_geoserver_views.sql
+              subPath: 101_analytics_ogc_views.sql
             {{- if $webapp.extraVolumeMounts }}
               {{- toYaml $webapp.extraVolumeMounts | nindent 10 }}
             {{- end }}
