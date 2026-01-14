@@ -7,7 +7,9 @@ import logging
 import re
 from typing import Any
 
-from georchestra_analytics_cli.access_logs.app_processors.ogcserver import OgcserverLogProcessor
+from georchestra_analytics_cli.access_logs.app_processors.ogcserver import (
+    OgcserverLogProcessor,
+)
 
 
 class MapproxyLogProcessor(OgcserverLogProcessor):

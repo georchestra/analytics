@@ -9,7 +9,9 @@ from typing import Any
 class AbstractLogProcessor(ABC):
 
     @abstractmethod
-    def __init__(self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}):
+    def __init__(
+        self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}
+    ):
         pass
 
     @abstractmethod
@@ -22,7 +24,9 @@ class AbstractLogProcessor(ABC):
         pass
 
     @abstractmethod
-    def collect_information(self, request_path: str, url_params: dict[str, Any]) -> dict:
+    def collect_information(
+        self, request_path: str, url_params: dict[str, Any]
+    ) -> dict:
         """
         Collect the app-specific information and structure it in a dict.
         Takes as input an already split URL: path and params

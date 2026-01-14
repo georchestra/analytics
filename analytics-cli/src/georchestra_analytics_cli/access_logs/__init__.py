@@ -1,3 +1,2 @@
-
 class LogParseError(Exception):
     pass

@@ -5,7 +5,7 @@ for analytics works and returns it in a dict structure compatible with common.mo
 """
 
 from abc import ABC, abstractmethod
-from typing import Tuple, Any
+from typing import Any, Tuple
 
 from georchestra_analytics_cli.common.models import AccessLogRecord
 

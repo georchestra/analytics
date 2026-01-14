@@ -8,8 +8,10 @@ import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from georchestra_analytics_cli.access_logs.app_processors.abstract import (
+    AbstractLogProcessor,
+)
 from georchestra_analytics_cli.utils import split_query_string
-from georchestra_analytics_cli.access_logs.app_processors.abstract import AbstractLogProcessor
 
 
 class OgcserverLogProcessor(AbstractLogProcessor):
@@ -26,7 +28,9 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         # re.compile("^/ogc/features/.*", re.IGNORECASE),
     ]
 
-    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
+    def __init__(
+        self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}
+    ):
         self.app_path = app_path if app_path else self.app_path
         self.app_id = app_id if app_id else self.app_path
         self.config = config
@@ -78,7 +82,7 @@ class OgcserverLogProcessor(AbstractLogProcessor):
                 match k.lower():
                     case "layers":
                         infos["layers"] = v
-                    case "typename": # WFS GetFeature layers list
+                    case "typename":  # WFS GetFeature layers list
                         infos["layers"] = v
                     case "tiled":
                         # Make it a boolean
@@ -92,7 +96,9 @@ class OgcserverLogProcessor(AbstractLogProcessor):
                         infos["width"] = v
                         if params.get("height", None):
                             infos["size"] = v + "x" + params.get("height")
-                            if self.config.get("infer_is_tiled", False) and (infos["size"] in ["256x256", "512x512"]):
+                            if self.config.get("infer_is_tiled", False) and (
+                                infos["size"] in ["256x256", "512x512"]
+                            ):
                                 infos["tiled"] = True
                     case "srs":
                         # Unify to crs, which is the key used on WMS 1.3.0
@@ -108,7 +114,9 @@ class OgcserverLogProcessor(AbstractLogProcessor):
                     case other:
                         infos[k.lower()] = v
             if self.config.get("infer_is_download", False) is True:
-                is_download, output_format = self._infer_is_download(request_path, infos)
+                is_download, output_format = self._infer_is_download(
+                    request_path, infos
+                )
                 if is_download:
                     infos["is_download"] = True
                     infos["download_format"] = output_format
@@ -120,7 +128,9 @@ class OgcserverLogProcessor(AbstractLogProcessor):
             logging.error(f"Key {e} not found in dictionary {params.__str__()}")
             return None
 
-    def _infer_is_download(self, request_path: str, url_params: dict[str, Any]) -> (bool, format):
+    def _infer_is_download(
+        self, request_path: str, url_params: dict[str, Any]
+    ) -> (bool, format):
         """
         Infer if the request is a download request. If yes, return also the format. Performs a mapping
         with the list of formats provided in the config file: allows both a filtering on the formats and
@@ -129,13 +139,19 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         """
         # TODO: support OGCAPI
         # Vector data:
-        if url_params.get("service", "").lower() == "wfs" and url_params.get("request", "").lower() == "getfeature":
+        if (
+            url_params.get("service", "").lower() == "wfs"
+            and url_params.get("request", "").lower() == "getfeature"
+        ):
             req_format = url_params.get("outputformat", "").lower()
             download_formats = self.config.get("download_formats", {}).get("vector", {})
             if req_format in download_formats.keys():
                 return True, download_formats.get(req_format, req_format)
         # Raster data:
-        if url_params.get("service", "").lower() == "wcs" and url_params.get("request", "").lower() == "getcoverage":
+        if (
+            url_params.get("service", "").lower() == "wcs"
+            and url_params.get("request", "").lower() == "getcoverage"
+        ):
             req_format = url_params.get("format", "").lower()
             download_formats = self.config.get("download_formats", {}).get("raster", {})
             return True, download_formats.get(req_format, req_format)

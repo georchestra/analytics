@@ -10,13 +10,17 @@ from .abstract import AbstractLogProcessor
 
 
 class GenericLogProcessor(AbstractLogProcessor):
-    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
+    def __init__(
+        self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}
+    ):
         pass
 
     def collect_information_from_url(self, url: str) -> dict:
         return dict()
 
-    def collect_information(self, request_path: str, url_params: dict[str, Any]) -> dict:
+    def collect_information(
+        self, request_path: str, url_params: dict[str, Any]
+    ) -> dict:
         return dict()
 
     def is_relevant(self, path: str, query_string: str) -> bool:

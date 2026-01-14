@@ -6,7 +6,9 @@ Inherits from the generic OGC server processor
 import logging
 from typing import Any
 
-from georchestra_analytics_cli.access_logs.app_processors.ogcserver import OgcserverLogProcessor
+from georchestra_analytics_cli.access_logs.app_processors.ogcserver import (
+    OgcserverLogProcessor,
+)
 
 
 class MapserverLogProcessor(OgcserverLogProcessor):
@@ -43,4 +45,3 @@ class MapserverLogProcessor(OgcserverLogProcessor):
         # To allow for aggregation between OGC servers, it will be called "workspace" in the DB anyway.
         infos["workspaces"] = self.get_path_without_app_path(request_path)
         return infos
-

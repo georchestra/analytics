@@ -1,12 +1,9 @@
 from datetime import datetime
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
-from sqlalchemy import MetaData, String, Integer, UniqueConstraint, Index, DateTime
+from sqlalchemy import DateTime, Index, Integer, MetaData, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import MappedAsDataclass
-from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.types import JSON
 
 # set schema for all tables
@@ -16,9 +13,7 @@ metadata_obj = MetaData(schema="analytics")
 
 class Base(DeclarativeBase):
     metadata = metadata_obj
-    type_annotation_map = {
-        dict[str, Any]: JSON
-    }
+    type_annotation_map = {dict[str, Any]: JSON}
 
 
 class OpentelemetryAccessLogRecord(MappedAsDataclass, Base):
@@ -26,7 +21,9 @@ class OpentelemetryAccessLogRecord(MappedAsDataclass, Base):
 
     __tablename__ = "opentelemetry_buffer"
 
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), primary_key=True
+    )
     span_id: Mapped[Optional[str]] = mapped_column(primary_key=True)
     trace_id: Mapped[Optional[str]]
     message: Mapped[str] = mapped_column()
@@ -48,9 +45,7 @@ class AccessLogRecord(MappedAsDataclass, Base):
     """User class will be converted to a dataclass"""
 
     __tablename__ = "access_logs"
-    __table_args__ = (
-        UniqueConstraint("ts", "id", name="idx_id_timestamp"),
-    )
+    __table_args__ = (UniqueConstraint("ts", "id", name="idx_id_timestamp"),)
 
     oid: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
     id: Mapped[Optional[str]]
@@ -76,10 +71,9 @@ class AccessLogRecord(MappedAsDataclass, Base):
     status_code: Mapped[Optional[int]]
     context_data: Mapped[Optional[dict[str, Any]]]
 
-
     def __repr__(self) -> str:
         return f"AccessLogRecord(oid={self.oid!r}, time={self.ts!r}, span_id={self.id!r}, msg={self.message!r})"
 
+
 # place a unique index on AccessLogRecord ts, id
 Index("idx_id_timestamp", AccessLogRecord.ts, AccessLogRecord.id, unique=True)
-

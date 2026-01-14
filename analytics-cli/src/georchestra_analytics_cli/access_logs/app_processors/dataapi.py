@@ -8,8 +8,10 @@ import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from georchestra_analytics_cli.access_logs.app_processors.abstract import (
+    AbstractLogProcessor,
+)
 from georchestra_analytics_cli.utils import split_query_string
-from georchestra_analytics_cli.access_logs.app_processors.abstract import AbstractLogProcessor
 
 
 class DataapiLogProcessor(AbstractLogProcessor):
@@ -18,11 +20,15 @@ class DataapiLogProcessor(AbstractLogProcessor):
     config: dict[str, Any] = {}
     download_formats: dict[str, Any] = {}
 
-    def __init__(self, app_path: str = "",  app_id: str = "", config: dict[str, Any] = {}):
+    def __init__(
+        self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}
+    ):
         self.app_path = app_path if app_path else self.app_path
         self.app_id = app_id if app_id else self.app_path
         self.config = config
-        self.download_formats = self.config.get("download_formats", {}).get("vector", {})
+        self.download_formats = self.config.get("download_formats", {}).get(
+            "vector", {}
+        )
 
     def collect_information_from_url(self, url: str) -> dict:
         """
@@ -66,7 +72,9 @@ class DataapiLogProcessor(AbstractLogProcessor):
 
                     # Default format is GeoJSON
                     # Rename the f param (hence "pop")
-                    params["download_format"] = self.download_formats.get(params.pop("f", "geojson"))
+                    params["download_format"] = self.download_formats.get(
+                        params.pop("f", "geojson")
+                    )
 
                     # Check if full download or paginated download
                     params["full_download"] = params.get("limit", None) == "-1"

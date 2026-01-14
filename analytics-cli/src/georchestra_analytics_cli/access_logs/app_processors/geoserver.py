@@ -7,7 +7,9 @@ import logging
 import re
 from typing import Any
 
-from georchestra_analytics_cli.access_logs.app_processors.ogcserver import OgcserverLogProcessor
+from georchestra_analytics_cli.access_logs.app_processors.ogcserver import (
+    OgcserverLogProcessor,
+)
 
 
 class GeoserverLogProcessor(OgcserverLogProcessor):
@@ -41,7 +43,9 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
             return None
 
         if infos.get("layers", ""):
-            workspaces, layers = self.normalize_layers(request_path, infos.get("layers"))
+            workspaces, layers = self.normalize_layers(
+                request_path, infos.get("layers")
+            )
             infos["layers"] = ",".join(layers)
             infos["workspaces"] = ",".join(workspaces)
         return infos
@@ -60,7 +64,7 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         workspaces = []
         layers = []
         if not layerparam:
-            return [],[]
+            return [], []
         path_based_ws = self.get_workspace_from_path(request_path)
         for layer in layerparam.split(","):
             if ":" in layer:
@@ -76,7 +80,6 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
 
         return workspaces, layers
 
-
     def get_workspace_from_path(self, request_path: str) -> str:
         """
         In Geoserver, the workspace can be provided in the path or in the query string as part of the layers parameter.
@@ -88,7 +91,7 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         # Integrated GWC paths
         regexes = [
             r".*\/(.*)\/gwc\/service\/(ows|wms|wfs|wcs|wmts)",  # GWC paths
-            r".*\/(.*)\/(ows|wms|wfs|wcs|wmts)",                # basic paths
+            r".*\/(.*)\/(ows|wms|wfs|wcs|wmts)",  # basic paths
         ]
         for regex in regexes:
             matches = re.search(regex, path)

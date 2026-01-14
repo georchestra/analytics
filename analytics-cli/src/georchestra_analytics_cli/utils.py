@@ -1,4 +1,3 @@
-
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -11,11 +10,13 @@ def int_or_none(value):
     except (ValueError, TypeError):
         return None
 
+
 def float_or_none(value):
     try:
         return float(value)
     except (ValueError, TypeError):
         return None
+
 
 def dict_recursive_update(d, u):
     """
@@ -28,12 +29,14 @@ def dict_recursive_update(d, u):
             d[k] = v
     return d
 
-def split_url(url: str)-> tuple[str,str,str,str]:
+
+def split_url(url: str) -> tuple[str, str, str, str]:
     """
     U
     """
     url_parts = urlparse(url.lower())
     return url_parts.hostname, url_parts.path, url_parts.query, url_parts.fragment
+
 
 def split_query_string(qs: str) -> dict[str, Any]:
     params = parse_qs(qs)
@@ -60,6 +63,6 @@ def generate_app_id(keys: list[str]) -> str:
 
 def write_prometheus_metrics(registry, metrics_filepath, pushgateway_url):
     if pushgateway_url:
-        push_to_gateway(pushgateway_url, job='analytics-cli', registry=registry)
+        push_to_gateway(pushgateway_url, job="analytics-cli", registry=registry)
     if metrics_filepath:
         write_to_textfile(metrics_filepath, registry)

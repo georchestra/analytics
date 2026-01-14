@@ -1,15 +1,23 @@
+import hashlib
 import logging
 import re
+from typing import Any, Tuple
 from urllib.parse import parse_qs, urlparse
 
 from dateutil import parser as dateutil_parser
-from typing import Any, Tuple
-import hashlib
 
-from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import BaseLogParser
-from georchestra_analytics_cli.utils import int_or_none, split_url, split_query_string, dict_recursive_update, \
-    generate_app_id, float_or_none
+from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import (
+    BaseLogParser,
+)
 from georchestra_analytics_cli.config import Config
+from georchestra_analytics_cli.utils import (
+    dict_recursive_update,
+    float_or_none,
+    generate_app_id,
+    int_or_none,
+    split_query_string,
+    split_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +29,7 @@ class RegexLogParser(BaseLogParser):
     (https://en.wikipedia.org/wiki/Common_Log_Format) which in theory makes them quite easy to parse
     using regular expressions.
     """
+
     # Regex for CLF access logs
     default_log_format_regex_str = r"^(?P<ip>[0-9a-fA-F:\.]+) (?P<user_identifier>[-_\w]+) (?P<user>[-_\|, \w]+) \[(?P<timestamp>.*)\] \"(?P<method>GET|POST|HEAD|OPTION|PUT|PATCH|DELETE|TRACE|CONNECT) (https?:\/\/[_:a-zA-Z0-9\.-]+)?(?P<path>(?P<app_path>\/[_a-zA-Z0-9-]+\/)(.*)) HTTP\/[\.0-9]{3}\" (?P<status_code>[0-9]{3}) (?P<response_size>[-0-9]*)"
 
@@ -32,7 +41,9 @@ class RegexLogParser(BaseLogParser):
 
     def __init__(self, config: Config):
         self.config = config
-        log_format_regex_str = config.get_parser_config_textmsg().get("regex", self.default_log_format_regex_str)
+        log_format_regex_str = config.get_parser_config_textmsg().get(
+            "regex", self.default_log_format_regex_str
+        )
         self.log_format_regex = re.compile(log_format_regex_str)
         # hashlib is used to generate a hashed key identifying the log message so that we can handle duplicates
         self.hashl = hashlib.md5()
@@ -50,7 +61,6 @@ class RegexLogParser(BaseLogParser):
         global level (all lines). For instance the host address. Or the app_id
         """
         self.extra_info = extras
-
 
     def parse(self, msg: str) -> dict[str, Any]:
         """
@@ -71,16 +81,18 @@ class RegexLogParser(BaseLogParser):
         ts = dateutil_parser.parse(m_dict["timestamp"].replace(":", " ", 1))
 
         # Determine app_path and app_id
-        app_path =self.get_app_path(m_dict)
+        app_path = self.get_app_path(m_dict)
         app_id = m_dict.get("app_id")
         if not app_id:
             if self.config.is_supporting_multiple_dn():
                 if m_dict.get("server_address") and app_path:
-                    app_id_components = [m_dict.get("server_address"),app_path]
+                    app_id_components = [m_dict.get("server_address"), app_path]
                     app_id = generate_app_id(app_id_components)
                 else:
-                    logger.error(f"Missing elements to generate the app_id. Maybe you need to provide server_address and "
-                                 f"app_path through the CLI --extra_info arguments")
+                    logger.error(
+                        f"Missing elements to generate the app_id. Maybe you need to provide server_address and "
+                        f"app_path through the CLI --extra_info arguments"
+                    )
                     # TODO: maybe raise error and stop the run
             else:
                 app_id = generate_app_id([app_path])
@@ -93,7 +105,7 @@ class RegexLogParser(BaseLogParser):
             "ts": ts.isoformat(),
             "id": self.generate_req_id(msg),
             "message": msg,
-            "app_id":app_id,
+            "app_id": app_id,
             "app_path": app_path,
             "app_name": self.config.what_app_is_it(app_id),
             "user_id": self._get_user_info(m_dict.get("user", "")).get("name"),
@@ -114,7 +126,7 @@ class RegexLogParser(BaseLogParser):
             "server_address": m_dict.get("server_address", ""),
             "context_data": {
                 "source_type": "access_log_file",
-            }
+            },
         }
 
         # Append user-agent header information
@@ -155,7 +167,7 @@ class RegexLogParser(BaseLogParser):
         user_info = {
             "name": user_values[0],
             "org": user_values[1],
-            "roles": user_values[2].split(",")
+            "roles": user_values[2].split(","),
         }
         # user_info = dict(zip(user_categories, user_values))
         # # Make roles a list
@@ -167,7 +179,7 @@ class RegexLogParser(BaseLogParser):
         Generate an ID for this log line. Will serve to avoid inserting duplicates. Replaces the span_id that we get
         with OpenTelemetry
         """
-        self.hashl.update(msg.encode('utf-8'))
+        self.hashl.update(msg.encode("utf-8"))
         return self.hashl.hexdigest()[0:12]
 
     def _get_response_time(self, rt):

@@ -46,7 +46,14 @@ class Config:
         # Get only relevant values
         conn_conf_dict = {
             key: db_config.get(key)
-            for key in {"drivername", "host", "port", "database", "username", "password"}
+            for key in {
+                "drivername",
+                "host",
+                "port",
+                "database",
+                "username",
+                "password",
+            }
         }
         connection_url = sqlalchemy_URL.create(**conn_conf_dict)
         logger.debug(f"db_conn_string='{connection_url}'")
@@ -106,6 +113,7 @@ class Config:
 
     def get_timezone(self) -> str:
         return self.config.get("timezone", "UTC")
+
 
 def get_config(config_path: str | None = None) -> Config:
     global config

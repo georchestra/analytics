@@ -3,11 +3,18 @@ import logging
 import random
 from datetime import datetime
 from typing import Any
-from jinja2 import Environment, BaseLoader
 
-from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import BaseLogParser
+from jinja2 import BaseLoader, Environment
+
+from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import (
+    BaseLogParser,
+)
 from georchestra_analytics_cli.config import Config
-from georchestra_analytics_cli.utils import split_query_string, dict_recursive_update, generate_app_id
+from georchestra_analytics_cli.utils import (
+    dict_recursive_update,
+    generate_app_id,
+    split_query_string,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +23,35 @@ fake_data = {
         "demo.georchestra.org",
         "staging.demo.georchestra.org",
     ],
-    "client_ips": ['84.60.118.215', '75.184.235.7', '16.6.112.218', '56.39.207.235', '15.76.69.118', '168.145.23.26',
-                   '74.249.247.89', '128.27.137.138', '116.68.74.146', '136.187.118.108'
-                   ],
+    "client_ips": [
+        "84.60.118.215",
+        "75.184.235.7",
+        "16.6.112.218",
+        "56.39.207.235",
+        "15.76.69.118",
+        "168.145.23.26",
+        "74.249.247.89",
+        "128.27.137.138",
+        "116.68.74.146",
+        "136.187.118.108",
+    ],
     "users": [
-        {"name": "testadmin", "org": "PSC", "roles": ["ROLE_SUPERUSER", "ROLE_MAPSTORE_ADMIN"]},
+        {
+            "name": "testadmin",
+            "org": "PSC",
+            "roles": ["ROLE_SUPERUSER", "ROLE_MAPSTORE_ADMIN"],
+        },
         {"name": "testuser", "org": "C2C", "roles": ["ROLE_USER"]},
-        {"name": "testuser2", "org": "G2F", "roles": ["ROLE_GEOSERVER_G2F", "ROLE_USER"]},
-        {"name": "testeditor", "org": "PSC", "roles": ["ROLE_SUPERSET_ADMIN", "ROLE_USER"]},
+        {
+            "name": "testuser2",
+            "org": "G2F",
+            "roles": ["ROLE_GEOSERVER_G2F", "ROLE_USER"],
+        },
+        {
+            "name": "testeditor",
+            "org": "PSC",
+            "roles": ["ROLE_SUPERSET_ADMIN", "ROLE_USER"],
+        },
         {"name": "", "org": "", "roles": []},
         {"name": "", "org": "", "roles": []},
         {"name": "", "org": "", "roles": []},
@@ -43,7 +71,6 @@ fake_data = {
         {"name": "isdi", "ns": "ademe"},
         {"name": "adresse_ban", "ns": "bdtopo"},
         {"name": "aerodrome", "ns": "bdtopo"},
-
     ],
     "requests": [
         {
@@ -157,7 +184,6 @@ fake_data = {
         },
     ],
     "status_codes": [200, 200, 200, 200, 200, 200, 200, 200, 404, 501, 503],
-
 }
 
 
@@ -219,7 +245,9 @@ class FakeLogGenerator(BaseLogParser):
             "message": f"{date.isoformat()} {req.get('request_method')} {req.get('request_path')}?{req.get('request_query_string')} {req.get('response_size')}",
             "app_id": app_id,
             "app_path": req.get("app_path"),
-            "app_name": req.get("app_name", self.config.what_app_is_it(req.get("app_path"))),
+            "app_name": req.get(
+                "app_name", self.config.what_app_is_it(req.get("app_path"))
+            ),
             "user_id": user.get("name"),
             "user_name": user.get("name"),
             "org_id": user.get("org"),
@@ -228,8 +256,10 @@ class FakeLogGenerator(BaseLogParser):
             "auth_method": None,
             "request_method": f"{req.get('request_method')}",
             "request_path": req.get("request_path").lower(),
-            "request_query_string": req.get('request_query_string').lower(),
-            "request_details": split_query_string(req.get('request_query_string').lower()),
+            "request_query_string": req.get("request_query_string").lower(),
+            "request_details": split_query_string(
+                req.get("request_query_string").lower()
+            ),
             "response_time": random.randint(50, 2000),
             "response_size": req.get("response_size"),
             "status_code": random.choice(fake_data["status_codes"]),
@@ -237,7 +267,7 @@ class FakeLogGenerator(BaseLogParser):
             "server_address": server_address,
             "context_data": {
                 "source_type": "fake_log_file",
-            }
+            },
         }
 
         # And then add app-specific logic
@@ -253,5 +283,5 @@ class FakeLogGenerator(BaseLogParser):
         Generate an ID for this log line. Will serve to avoid inserting duplicates. Replaces the span_id that we get
         with OpenTelemetry
         """
-        self.hashl.update(msg.encode('utf-8'))
+        self.hashl.update(msg.encode("utf-8"))
         return self.hashl.hexdigest()[0:12]
