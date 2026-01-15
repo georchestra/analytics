@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   analytics:
   - apiVersion: v2
+    appVersion: 1.0.0rc1
+    created: "2026-01-15T10:00:04.070868348Z"
+    description: A Helm chart geOrchestra Analytics module
+    digest: d3dd3e79d45e041b976137adc31e41e5773570aba8801543e5425a202f13b10d
+    name: analytics
+    type: application
+    urls:
+    - https://github.com/georchestra/analytics/releases/download/analytics-1.0.0/analytics-1.0.0.tgz
+    version: 1.0.0
+  - apiVersion: v2
     appVersion: 0.1.0
     created: "2025-05-14T07:41:47.060011033Z"
     description: A Helm chart geOrchestra Analytics module
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/georchestra/analytics/releases/download/analytics-0.1.0/analytics-0.1.0.tgz
     version: 0.1.0
-generated: "2025-05-14T07:41:47.060017024Z"
+generated: "2026-01-15T10:00:04.070879218Z"
