@@ -155,6 +155,10 @@ class OpentelemetryLogParser(BaseLogParser):
         if user_agent:
             ua_dict = self.parse_user_agent(user_agent)
             log_dict["request_details"].update(ua_dict)
+        # Append Referer header information if available
+        referrer = attributes.get("http.request.header.Referer", "")
+        if referrer:
+            log_dict["request_details"].update({"referrer": referrer})
         return log_dict
 
     def get_app_path(self, request_path: str) -> str:
