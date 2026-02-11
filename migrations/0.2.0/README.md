@@ -29,6 +29,7 @@ ALTER TABLE analytics.access_logs
 - optionally set default values:
 
 ```sql
+SET timescaledb.max_tuples_decompressed_per_dml_transaction TO 0;
 UPDATE analytics.access_logs
 SET server_address = 'your fqdn';
 UPDATE analytics.access_logs
