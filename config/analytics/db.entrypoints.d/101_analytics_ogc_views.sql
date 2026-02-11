@@ -18,15 +18,16 @@ SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly,
     request_details ->> 'is_download'       AS is_download,
     request_details ->> 'download_format'   AS download_format,
     request_details ->> 'user_agent_family' AS user_agent_family,
+    request_details ->> 'referrer' AS referrer,
     count(id)                               AS nb_req,
     AVG(response_time)                      AS avg_time,
     percentile_agg(response_time::DOUBLE PRECISION)         AS percentile_hourly
 FROM analytics.access_logs
 WHERE request_details ->'tags' @> '["ogc"]'
 GROUP BY bucket_hourly, app_id, app_name, user_name, org_name, request_method, status_code, server_address,
-    request_details ->> 'workspaces', request_details ->> 'layers',
-    request_details ->> 'service', request_details ->> 'request' , request_details ->> 'tiled',
-    request_details ->> 'is_download', request_details ->> 'download_format', request_details ->> 'user_agent_family';
+    request_details ->> 'workspaces', request_details ->> 'layers', request_details ->> 'service',
+    request_details ->> 'request' , request_details ->> 'tiled', request_details ->> 'is_download',
+    request_details ->> 'download_format', request_details ->> 'user_agent_family', request_details ->> 'referrer';
 
 -- for explanations about the percentile_agg see
 -- https://docs.timescale.com/use-timescale/latest/continuous-aggregates/hierarchical-continuous-aggregates/#roll-up-calculations
@@ -63,12 +64,13 @@ SELECT  time_bucket(INTERVAL '1 d', bucket_hourly, 'Europe/Paris') AS bucket_dai
     is_download,
     download_format,
     user_agent_family,
+    referrer,
     SUM(nb_req)                       AS nb_req,
     mean(rollup(percentile_hourly))   AS avg_time,
     rollup(percentile_hourly) as percentile_daily
 FROM analytics.ogc_summary_hourly
 GROUP BY bucket_daily, app_id, app_name, user_name, org_name, request_method, status_code, server_address, workspaces,
-     layers, service, request, tiled, is_download, download_format, user_agent_family;
+     layers, service, request, tiled, is_download, download_format, user_agent_family, referrer;
 
 SELECT add_retention_policy('analytics.ogc_summary_daily', drop_after => INTERVAL '2 years', schedule_interval => INTERVAL '1 week');
 
@@ -102,12 +104,13 @@ SELECT  time_bucket(INTERVAL '1 month', bucket_daily, 'Europe/Paris') AS bucket_
     is_download,
     download_format,
     user_agent_family,
+    referrer,
     SUM(nb_req)                      AS nb_req,
     mean(rollup(percentile_daily))   AS avg_time,
     rollup(percentile_daily) as percentile_monthly
 FROM analytics.ogc_summary_daily
 GROUP BY bucket_monthly, app_id, app_name, user_name, org_name, request_method, status_code, server_address, workspaces,
-     layers, service, request, tiled, is_download, download_format, user_agent_family;
+     layers, service, request, tiled, is_download, download_format, user_agent_family, referrer;
 
 -- set compression
 -- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/

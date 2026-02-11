@@ -132,3 +132,25 @@ WHERE j.proc_name = 'policy_retention';
 ```
 
 ref. https://www.tigerdata.com/docs/use-timescale/latest/data-retention/create-a-retention-policy#see-scheduled-data-retention-jobs
+
+## Missing some attributes
+
+Some attributes may not be present in the logs shipped through OpenTelemetry.
+
+### Header information (User-Agent, Referer)
+
+Check that the Gateway is properly configured to send these headers. Refs:
+
+- https://docs.georchestra.org/analytics/en/latest/technical_guides/installation/configuration/gateway/#enabling-enhanced-access-logs
+- https://docs.georchestra.org/gateway/en/latest/user_guide/logging/
+
+The Referer information might also be very limited, or even missing anyhow. This will depend highly on the configuration
+of all the intermediate proxies : your main reverse-proxy, the Gateway etc.
+For instance, on the Gateway, you might want to check the `spring.cloud.gateway.filter.secure-headers.referrer-policy`
+configuration parameter, usually defined
+in [Gateway's application.yaml](https://github.com/georchestra/datadir/blob/master/gateway/application.yaml).
+[Depending on the value set for that param](https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Headers/Referrer-Policy),
+the content of the Referer header will vary.
+The default value on the geOrchestra datadirs is `strict-origin` which will limit the transmitted information to the
+domain. You might want to set it to `strict-origin-when-cross-origin` to get more detailed information at least when on
+the same domain.

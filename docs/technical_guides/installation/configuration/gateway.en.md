@@ -60,7 +60,7 @@ http:
   query-string: true
   parameters: true
   headers: true
-  headers-pattern: "(?i)user-agent"
+  headers-pattern: "(?i)user-agent|referer"
 
 ```
 
