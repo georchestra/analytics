@@ -34,7 +34,7 @@ tox --help
 ```
 
 ### Build the project:
-```
+```bash
 tox -e clean,build
 ```
 
@@ -49,12 +49,12 @@ This ensures that `setuptools_scm` will detect a clean version. `setuptools_scm`
 You will also also need a pypi token to publish
 
 Publish on test.pypi.org:
-```
+```bash
 tox -e publish
 ```
 
 Publish on pypi.org:
-```
+```bash
 tox -e publish -- --repository pypi
 ```
 
@@ -69,22 +69,22 @@ It takes 2 options:
 Examples:
 
 - Build from the latest version from pypi:
-```
+```bash
 ./docker_build.sh --mode=pypi
 ```
 - Build from the 0.1.0 version from pypi: (version 0.1.0 has to exist there)
-```
+```bash
 ./docker_build.sh --mode=pypi --version=0.1.0
 ```
 - Build from the 0.1.0 version from test.pypi: (version 0.1.0 has to exist there)
-```
+```bash
 ./docker_build.sh --mode=test --version=0.1.0
 ```
 - Build from local codebase, tag it 0.1.0-dirty:
-```
+```bash
 ./docker_build.sh --mode=dev --version=0.1.0-dirty
 ```
 - Build from local codebase, use the auto-generated tag:
-```
+```bash
 ./docker_build.sh --mode=dev
 ```

@@ -61,7 +61,7 @@ data:
     SELECT create_hypertable('analytics.access_logs', by_range('ts', INTERVAL '7 days'));
     COMMENT ON TABLE analytics.access_logs IS 'Storage (hyper)table for the access logs processed data. This is a timescaledb-enabled table.';
     
-    CREATE UNIQUE INDEX idx_id_timestamp
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_id_timestamp
       ON analytics.access_logs(ts, id);
     
     -- Set retention policy to 3 years, see https://docs.timescale.com/api/latest/data-retention/add_retention_policy/#add_retention_policy
