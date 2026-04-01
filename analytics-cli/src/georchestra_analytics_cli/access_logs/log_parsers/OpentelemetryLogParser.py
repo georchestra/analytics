@@ -62,7 +62,7 @@ class OpentelemetryLogParser(BaseLogParser):
             # We replace the request_details dict, instead of simply updating it. It allows to drop some values deemed uninteresting/redundant
             # dict_recursive_update(log_dict["request_details"], app_data)
             log_dict["request_details"] = app_data
-        return log_dict
+            return log_dict
 
     def read_otel_generics(
         self, otel_record: OpentelemetryAccessLogRecord
