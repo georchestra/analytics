@@ -1,6 +1,12 @@
 
 # Changelog
 
+## version 1.0.x
+
+- **bugfix**: Fixed `ON CONFLICT` error by removing duplicate index definition in SQLAlchemy models
+- Fixed unique constraint on `(ts, id)` to work properly with TimescaleDB hypertables
+- Add support for ogc api features from geoserver (missing support for mapserver and mapproxy for now)
+
 ## version 1.0.0
 
 - **documentation** 

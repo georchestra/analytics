@@ -44,7 +44,7 @@ class OpentelemetryLogParser(BaseLogParser):
 
         super().__init__(config)
 
-    def parse(self, otel_record: OpentelemetryAccessLogRecord) -> dict[str, Any]:
+    def parse(self, otel_record: OpentelemetryAccessLogRecord) -> dict[str, Any] | None:
         """
         Parses an access log message provided in the format managed by the implementation class and returns a dictionary with
         the parsed values, matching the common.models.AccessLogRecord schema.
@@ -58,11 +58,13 @@ class OpentelemetryLogParser(BaseLogParser):
         dict_recursive_update(log_dict, self.read_otel_mdc(otel_record))
         # And then add app-specific logic
         app_data = self.parse_with_app_processor(log_dict)
-        if app_data is not None:
+        if app_data is None:
+            return None
+        else:
             # We replace the request_details dict, instead of simply updating it. It allows to drop some values deemed uninteresting/redundant
             # dict_recursive_update(log_dict["request_details"], app_data)
             log_dict["request_details"] = app_data
-        return log_dict
+            return log_dict
 
     def read_otel_generics(
         self, otel_record: OpentelemetryAccessLogRecord

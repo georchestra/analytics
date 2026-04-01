@@ -25,7 +25,7 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         # OGC WxS services
         re.compile(r".*\?.*(service=).*", re.IGNORECASE),
         # OGCAPI services
-        # re.compile("^/ogc/features/.*", re.IGNORECASE),
+        re.compile("^.*/collections/.+", re.IGNORECASE),
     ]
 
     def __init__(
@@ -84,6 +84,8 @@ class OgcserverLogProcessor(AbstractLogProcessor):
                         infos["layers"] = v
                     case "typename":  # WFS GetFeature layers list
                         infos["layers"] = v
+                    case "typenames":
+                        infos["layers"] = v
                     case "tiled":
                         # Make it a boolean
                         if isinstance(v, str):
@@ -113,6 +115,8 @@ class OgcserverLogProcessor(AbstractLogProcessor):
                         infos["request"] = v.lower()
                     case other:
                         infos[k.lower()] = v
+            if self.is_ogc_api_features(request_path):
+                self._infer_layer_from_url(request_path, infos)
             if self.config.get("infer_is_download", False) is True:
                 is_download, output_format = self._infer_is_download(
                     request_path, infos
@@ -137,8 +141,12 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         more human-friendly names for the formats.
 
         """
-        # TODO: support OGCAPI
         # Vector data:
+        if (self.is_ogc_api_features(request_path)):
+            req_format = url_params.get("f", "").lower()
+            download_formats = self.config.get("download_formats", {}).get("vector", {})
+            if req_format in download_formats.keys():
+                return True, download_formats.get(req_format, req_format)
         if (
             url_params.get("service", "").lower() == "wfs"
             and url_params.get("request", "").lower() == "getfeature"
@@ -166,3 +174,14 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         if request_path.startswith(f"/{self.app_path}/"):
             request_path = request_path.replace(f"/{self.app_path}/", "/", 1)
         return request_path
+
+    def is_ogc_api_features(self, request_path: str) -> bool:
+        return request_path.__contains__("/ogc/features/")
+
+    def _infer_layer_from_url(self, request_path: str, infos: dict[str, Any]) -> None:
+        infos['service'] = "OGC API Features"
+        m = re.compile("^.*/ogc/features/.*/collections/([^/]+){1}/?(items)?", re.IGNORECASE)
+        res = m.search(request_path)
+        if res:
+            infos['layers'] = res.group(1)
+            infos['request'] = 'items' if res.group(2) else 'layer'

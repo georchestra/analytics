@@ -92,6 +92,7 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         regexes = [
             r".*\/(.*)\/gwc\/service\/(ows|wms|wfs|wcs|wmts)",  # GWC paths
             r".*\/(.*)\/(ows|wms|wfs|wcs|wmts)",  # basic paths
+            r".*collections\/([^/]*){1}",  # basic paths
         ]
         for regex in regexes:
             matches = re.search(regex, path)
