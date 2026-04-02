@@ -164,11 +164,14 @@ class RegexLogParser(BaseLogParser):
         user_values = [None, None, None]
         if user_string:
             user_values = user_string.split("|")
-        user_info = {
-            "name": user_values[0],
-            "org": user_values[1],
-            "roles": user_values[2].split(","),
-        }
+        if len(user_values) == 2:
+            user_info = {
+                "name": user_values[0],
+                "org": user_values[1],
+                "roles": user_values[2].split(","),
+            }
+        else:
+            user_info = { "name": user_values }
         # user_info = dict(zip(user_categories, user_values))
         # # Make roles a list
         # user_info["roles"] = user_info["roles"].split(",")
