@@ -80,6 +80,9 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         try:
             for k, v in params.items():
                 match k.lower():
+                    # WMTS GetTile & WMS GetLegendGraphic parameter is layer=xxx
+                    case "layer":
+                        infos["layers"] = v
                     case "layers":
                         infos["layers"] = v
                     case "typename":  # WFS GetFeature layers list
