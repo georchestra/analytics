@@ -15,8 +15,14 @@ RUN apt-get update \
     && apt-get -q clean \
     && rm -rf /var/lib/apt/lists/*
 
+ARG UID=10000
+ARG GID=10001
+RUN groupadd --gid $GID analytics \
+    && useradd --uid $UID --gid analytics --create-home analytics
+
 # Use a virtualenv
-RUN python -m venv /opt/venv
+RUN python -m venv /opt/venv \
+    && chown -R analytics:analytics /opt/venv
 # Enable venv
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -24,7 +30,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 FROM base AS dev
 
 WORKDIR /app
-COPY . /app
+COPY --chown=analytics:analytics . /app
 
 # Install analytics-cli local code (not from pypi)
 
@@ -35,8 +41,9 @@ ARG VERSION
 ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_GEORCHESTRA_ANALYTICS_CLI=0.0.0
 #ENV SETUPTOOLS_SCM_DEBUG=true
 
-RUN pip install --root-user-action=ignore --no-cache-dir .
+RUN pip install --no-cache-dir .
 
+USER analytics
 CMD ["analytics-cli"]
 
 #-----------
@@ -48,6 +55,7 @@ ENV SET_VERSION="==$VERSION"
 RUN pip install --upgrade pip \
     && pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ georchestra-analytics-cli$SET_VERSION
 
+USER analytics
 CMD ["analytics-cli"]
 
 #-----------
@@ -59,4 +67,5 @@ ENV SET_VERSION="==$VERSION"
 RUN pip install --upgrade pip \
     && pip install georchestra-analytics-cli$SET_VERSION
 
+USER analytics
 CMD ["analytics-cli"]
