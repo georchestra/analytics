@@ -94,7 +94,9 @@ class OpentelemetryLogParser(BaseLogParser):
         TODO: more robust handling of Otel attributes as per https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/
         (e.g. http.status_code deprecated in favor of http.response.status_code)
         """
-        attributes = otel_record.attributes or dict()
+        attributes = otel_record.attributes
+        if not attributes:
+            return dict()
         u_hostname, u_path, u_request_qs, u_fragments = split_url(
             attributes.get("http.request.url", "").lower()
         )
