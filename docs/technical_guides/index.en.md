@@ -1,4 +1,4 @@
-# Technical Guides Index
+# Install Guides Index
 
 ## Table of Contents
 

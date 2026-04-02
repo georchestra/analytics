@@ -1,4 +1,4 @@
-# User guide index
+# Admin guide index
 
 Usage analytics is mostly a matter of platform administrator. _User_, here, refers to a platform admin.  
 However, there are different kinds of _administrator_, depending on how much access you have to the configuration of the

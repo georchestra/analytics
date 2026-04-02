@@ -25,6 +25,12 @@ Or you can also opt for a SAAS database (paid option of course).
 Like plain PostgreSQL, it is possible to deploy a light database service or a full-fledged HA service, on-premise or as
 a SAAS, depending on your choices and needs. _**This will be up to you to decide how you want to host it.**_
 
+You will need the following postgresql timescaledb-related *extensions*:
+
+- `timescaledb`
+- [`timescaledb-toolkit`](https://www.tigerdata.com/docs/self-hosted/latest/tooling/install-toolkit) (extra 
+functionalities, needed for instance to aggregate statistical data)
+
 The docker compose and helm chart will come with an optional built-in light installation of TimescaleDB (no HA, no QoS
 warranty).
 
@@ -42,7 +48,7 @@ collect the logs from your gateway/security proxy service.
 Installation implies:
 
 - configure the Gateway/security proxy to use the OpenTelemetry java agent and expose the enhanced access logs (
-  see [Configuring access logs](configuration/index.md))
+  see [Configuring access logs](../configuration/index.md))
 - run an OpenTelemetry-capable
   service, [Vector](https://vector.dev/docs/reference/configuration/sources/opentelemetry/), in charge of collecting the
   logs and shipping them to the database.
@@ -58,7 +64,7 @@ TODO: implement docker-compose and feature in helm chart
 
 Vector comes with a yaml configuration file. For the docker and k8s setups, a default config file will be provided.
 
-A sample configuration file is provided in the [vector configuration page](configuration/vector.md).
+A sample configuration file is provided in the [vector configuration page](../configuration/vector.md).
 
 ## Analytics CLI (python task)
 

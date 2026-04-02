@@ -5,7 +5,7 @@ Usage analytics rely on access log data. By default, this data is collected from
 The way the Gateway is configured will determine which geOrchestra apps will be monitored and accessible for the
 dataviz.
 This is covered in the section about
-the [gateway configuration in the install doc](../technical_guides/installation/configuration/gateway.md).
+the [gateway configuration in the install doc](../technical_guides/configuration/gateway.md).
 
 But you can also collect data from other sources, external apps.
 

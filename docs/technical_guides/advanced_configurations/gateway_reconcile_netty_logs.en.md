@@ -23,7 +23,7 @@ Vector provides a service called `reduce` that can merge logs that have an ident
 This service is what will merge the logs. The output from Vector will look like before, but enriched with some more
 information.
 
-![workflow](../../../d2/reconcile_netty_gateway.svg)
+![workflow](../../d2/reconcile_netty_gateway.svg)
 
 ## Procedure
 
@@ -133,4 +133,4 @@ sinks:
     pool_size: 5
 ```
 
-Full config file can be found here: [vector.yaml](./netty_gw_reconcile_vector_config.yml)
+Full config file can be found here: [vector.yaml](netty_gw_reconcile_vector_config.yml)

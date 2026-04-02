@@ -11,7 +11,7 @@ components interact with each other.
 We are talking about the Gateway or the Security Proxy here.
 
 1. First step is checking that you properly configured them to produce access logs. Look at
-   the [configuration](configuration/index.md) section for this.
+   the [configuration](../configuration/index.md) section for this.
 
 2. To see the output, you cannot really rely on the stdout logs of this component, since OpenTelemetry output is
    independent from the console output.  
@@ -154,3 +154,8 @@ the content of the Referer header will vary.
 The default value on the geOrchestra datadirs is `strict-origin` which will limit the transmitted information to the
 domain. You might want to set it to `strict-origin-when-cross-origin` to get more detailed information at least when on
 the same domain.
+
+### Missing client ip or user id
+
+Those are sensitive information, subject to GDPR regulations in Europe, for instance.
+This is why they are by default not collected (blacklisted). To enable them, you can declare an empty blacklist in the configuration file, see CLI config.

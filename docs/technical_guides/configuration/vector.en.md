@@ -13,20 +13,20 @@ It is all configured in a single yaml configuration file. Here's a sample, simpl
 
 _vector.yml:_
 ```yaml
-api:
-  enabled: true
-  address: 0.0.0.0:8686
+#api:
+#  enabled: true
+#  address: 0.0.0.0:8686
 sources:
   opentelemetry:
     type: opentelemetry
     grpc:
       address: 0.0.0.0:4317
-    http:
-      address: 0.0.0.0:4318
-      headers: []
-      keepalive:
-        max_connection_age_jitter_factor: 0.1
-        max_connection_age_secs: 300
+#    http:
+#      address: 0.0.0.0:4318
+#      headers: []
+#      keepalive:
+#        max_connection_age_jitter_factor: 0.1
+#        max_connection_age_secs: 300
 transforms:
   access_logs_filter:
     # Accept only access logs
@@ -63,6 +63,11 @@ sinks:
     If you uncomment the console sink, you will also get the output on stdout, which is very practical when debugging 
     the workflow. You can also choose to log on stdout the opentelemetry.logs raw data instead of the data filtered 
     by Vector.
+
+!!! warning "Tip"
+
+    You might want to replace the 0.0.0.0 listening address to the internal IP / domain of the Vector service (make sure
+    you don't open it to the full internet if possible, or you will want to add authentication).
 
 To know more about Vector configuration, please read its documentation on [https://vector.dev/docs](https://vector.dev/docs).
 

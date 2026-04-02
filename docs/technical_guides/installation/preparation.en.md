@@ -9,5 +9,5 @@ Ensure first you have
 ## Configure access logs
 
 You will also have to configure the access logs in your Security proxy / Gateway. See the corresponding instructions on
-the [Configuration section](configuration/index.md).
+the [Configuration section](../configuration/index.md).
 
