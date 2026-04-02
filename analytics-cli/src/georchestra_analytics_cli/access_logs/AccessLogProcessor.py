@@ -124,18 +124,17 @@ class AccessLogProcessor:
         with open(log_file_path, "r") as logs_data, self.get_session() as session:
             processed_log_records = list()
             try:
-                while True:
-                    line = logs_data.readline()
+                for line in logs_data:
                     # if line is empty, end of file is reached
                     if not line:
                         break
 
                     lr = self.log_parser.parse(line)
-                    if self.keys_blacklist:
-                        # Cover data_privacy issues by allowing to blacklist (not collect) some sensitive data if necessary
-                        for k in self.keys_blacklist:
-                            lr.pop(k, None)
                     if lr is not None:
+                        if self.keys_blacklist:
+                            # Cover data_privacy issues by allowing to blacklist (not collect) some sensitive data if necessary
+                            for k in self.keys_blacklist:
+                                lr.pop(k, None)
                         lr["context_data"]["source"] = log_file_path
                         processed_log_records.append(lr)
 
@@ -144,6 +143,8 @@ class AccessLogProcessor:
                         and len(processed_log_records) % self.batch_size == 0
                     ):
                         self.upsert_log_records(session, processed_log_records)
+                        # Reset the processed records buffer, for next batch
+                        processed_log_records = list()
 
                 # Last commit at the end of the loop, commit remaining batch
                 if len(processed_log_records) > 0:
