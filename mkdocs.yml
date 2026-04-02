@@ -52,45 +52,45 @@ extra_javascript:
 
 nav:
     - Home: index.md
-    - User guide:
-        - User guide: user_guide/index.md
+    - Admin guide:
+        - Admin guide: user_guide/index.md
         - Default usage analytics dashboard: user_guide/superset_dashboard.md
         - Creating new dataviz: user_guide/new_dataviz.md
         - TimescaleDB, creating new aggregated view: user_guide/aggregated_views.md
         - Collecting access logs from several sources: user_guide/multiple_log_sources.md
-    - Technical guides:
+    - Install guide:
         - Index: technical_guides/index.md
 #        - Administration:
 #            - technical_guides/administration/index.md
 #            - technical_guides/administration/one_page.md
+        - technical_guides/presentation.md
         - Installation:
             - technical_guides/installation/index.md
-            - technical_guides/installation/presentation.md
             - technical_guides/installation/prerequisites.md
             - technical_guides/installation/preparation.md
             - technical_guides/installation/installation.md
-            - Configuration:
-              - technical_guides/installation/configuration/index.md
-              - technical_guides/installation/configuration/gateway.md
-              - technical_guides/installation/configuration/security_proxy.md
-              - technical_guides/installation/configuration/vector.md
-              - technical_guides/installation/configuration/timescaledb.md
-              - technical_guides/installation/configuration/analytics-cli.md
-              - technical_guides/installation/configuration/superset.md
-            - technical_guides/installation/troubleshooting.md
-            - Advanced configurations:
-              - technical_guides/installation/advanced_configurations/index.md
-              - technical_guides/installation/advanced_configurations/gateway_reconcile_netty_logs.en.md
             # - technical_guides/installation/tests.md
-        - Contribute:
-            - technical_guides/contribute/index.md
-            - technical_guides/contribute/analytics-cli.md
-            - Documentation:
-                - technical_guides/contribute/documentation/index.md
-            - Tutorials:
-                - technical_guides/contribute/tutorials/index.md
-                - How to add a new app processor:
-                    - technical_guides/contribute/tutorials/add_a_new_app_processor/index.md
+        - Configuration:
+          - technical_guides/configuration/index.md
+          - technical_guides/configuration/gateway.md
+          - technical_guides/configuration/security_proxy.md
+          - technical_guides/configuration/vector.md
+          - technical_guides/configuration/timescaledb.md
+          - technical_guides/configuration/analytics-cli.md
+          - technical_guides/configuration/superset.md
+        - technical_guides/troubleshooting.md
+        - Advanced configurations:
+          - technical_guides/advanced_configurations/index.md
+          - technical_guides/advanced_configurations/gateway_reconcile_netty_logs.en.md
+    - Contribute:
+        - technical_guides/contribute/index.md
+        - technical_guides/contribute/analytics-cli.md
+        - Documentation:
+            - technical_guides/contribute/documentation/index.md
+        - Tutorials:
+            - technical_guides/contribute/tutorials/index.md
+            - How to add a new app processor:
+                - technical_guides/contribute/tutorials/add_a_new_app_processor/index.md
 
 markdown_extensions:
   - admonition

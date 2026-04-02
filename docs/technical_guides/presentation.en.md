@@ -13,7 +13,7 @@ _Collecting usage data from the Security Proxy / Gateway access logs_
 
 #### Workflow
 
-![workflow](../../d2/workflow_standard.svg)
+![workflow](../d2/workflow_standard.svg)
 
 #### Checklist
 
@@ -47,7 +47,7 @@ nginx etc. The only difference is that you won't get the user information (id, r
 But you will also probably want to feed the database with historic access logs collected over time to preseed the
 database with as much information as possible.
 
-![workflow](../../d2/workflow_manual.svg)
+![workflow](../d2/workflow_manual.svg)
 
 This scenario will skip the OpenTelemetry part: the logs will be directly processed by the Analytics CLI and pushed on
 the database. Main related documentation pages:

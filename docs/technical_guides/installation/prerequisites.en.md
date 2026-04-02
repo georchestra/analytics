@@ -45,7 +45,7 @@ The access log message is also a bit simple.
 Gateway versions 1.x will support OpenTelemetry but don't provide such access logs. It is still possible though to
 enable Netty access logs with the JVM argument  
 `-Dreactor.netty.http.server.accessLogEnabled=true`.  
-Combined with enabling Opentelemetry support as documented in [Gateway configuration](configuration/gateway.md), you can
+Combined with enabling Opentelemetry support as documented in [Gateway configuration](../configuration/gateway.md), you can
 get Opentelemetry logs with no MDCs but with a good-enough access log message. Which can be processed by the CLI if you
 enable in the config:
 
