@@ -62,4 +62,4 @@ ALTER TABLE access_logs SET (
   timescaledb.compress,
   timescaledb.compress_segmentby = 'id'
 );
-SELECT add_compression_policy('access_logs', compress_after => INTERVAL '1 month');
+SELECT add_compression_policy('access_logs', compress_after => INTERVAL '1 day');

@@ -20,8 +20,12 @@ SELECT time_bucket(INTERVAL '1 h', ts, 'Europe/Paris') AS bucket_hourly,
     request_details ->> 'user_agent_family' AS user_agent_family,
     request_details ->> 'referrer' AS referrer,
     count(id)                               AS nb_req,
-    AVG(response_time)                      AS avg_time,
-    percentile_agg(response_time::DOUBLE PRECISION)         AS percentile_hourly
+    percentile_cont(0.5) WITHIN GROUP (
+        ORDER BY
+            response_time::DOUBLE PRECISION
+    ) AS response_time_median,
+    min(response_time::DOUBLE PRECISION) AS response_time_min,
+    max(response_time::DOUBLE PRECISION) AS response_time_max
 FROM analytics.access_logs
 WHERE request_details ->'tags' @> '["ogc"]'
 GROUP BY bucket_hourly, app_id, app_name, user_name, org_name, request_method, status_code, server_address,
@@ -29,21 +33,20 @@ GROUP BY bucket_hourly, app_id, app_name, user_name, org_name, request_method, s
     request_details ->> 'request' , request_details ->> 'tiled', request_details ->> 'is_download',
     request_details ->> 'download_format', request_details ->> 'user_agent_family', request_details ->> 'referrer';
 
--- for explanations about the percentile_agg see
+-- median would be better estimated using percentiel_agg
 -- https://docs.timescale.com/use-timescale/latest/continuous-aggregates/hierarchical-continuous-aggregates/#roll-up-calculations
+-- but it belongs to timescaledb_toolkit, which is a heavier dependency.
 
 
 SELECT add_retention_policy('analytics.ogc_summary_hourly', drop_after => INTERVAL '3 weeks', schedule_interval => INTERVAL '1 day');
 
--- set compression
--- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
+-- The date below serves to anchor the 1h interval to a given moment (in this case, every hour past 5 min 5 second).
+-- If not declared, it would anchor the the moment the script was run, meaning any time possible, which we don't want.
 SELECT add_continuous_aggregate_policy('analytics.ogc_summary_hourly',
   initial_start => '2025-11-11 00:05:05',
   start_offset => INTERVAL '7 days',
   end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 hour');
-ALTER MATERIALIZED VIEW analytics.ogc_summary_hourly set (timescaledb.compress = true);
-SELECT add_compression_policy('analytics.ogc_summary_hourly', compress_after=>'4 days'::interval);
 
 
 CREATE MATERIALIZED VIEW analytics.ogc_summary_daily
@@ -66,27 +69,27 @@ SELECT  time_bucket(INTERVAL '1 d', bucket_hourly, 'Europe/Paris') AS bucket_dai
     user_agent_family,
     referrer,
     SUM(nb_req)                       AS nb_req,
-    mean(rollup(percentile_hourly))   AS avg_time,
-    rollup(percentile_hourly) as percentile_daily
+    percentile_cont(0.5) WITHIN GROUP (
+        ORDER BY
+            response_time_median
+    ) AS response_time_median,
+    min(response_time_min) AS response_time_min,
+    max(response_time_max) AS response_time_max
 FROM analytics.ogc_summary_hourly
 GROUP BY bucket_daily, app_id, app_name, user_name, org_name, request_method, status_code, server_address, workspaces,
      layers, service, request, tiled, is_download, download_format, user_agent_family, referrer;
 
 SELECT add_retention_policy('analytics.ogc_summary_daily', drop_after => INTERVAL '2 years', schedule_interval => INTERVAL '1 week');
 
--- set compression
--- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
 SELECT add_continuous_aggregate_policy('analytics.ogc_summary_daily',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 d');
-ALTER MATERIALIZED VIEW analytics.ogc_summary_daily set (timescaledb.compress = true);
-SELECT add_compression_policy('analytics.ogc_summary_daily', compress_after=>'4 weeks'::interval);
 
 
 
-CREATE MATERIALIZED VIEW analytics.ogc_summary_monthly
+CREATE MATERIALIZED VIEW analytics.ogc_summary_monthly2
 WITH (timescaledb.continuous) AS
 SELECT  time_bucket(INTERVAL '1 month', bucket_daily, 'Europe/Paris') AS bucket_monthly,
     app_id,
@@ -106,21 +109,21 @@ SELECT  time_bucket(INTERVAL '1 month', bucket_daily, 'Europe/Paris') AS bucket_
     user_agent_family,
     referrer,
     SUM(nb_req)                      AS nb_req,
-    mean(rollup(percentile_daily))   AS avg_time,
-    rollup(percentile_daily) as percentile_monthly
-FROM analytics.ogc_summary_daily
+    percentile_cont(0.5) WITHIN GROUP (
+        ORDER BY
+            response_time_median
+    ) AS response_time_median,
+    min(response_time_min) AS response_time_min,
+    max(response_time_max) AS response_time_max
+FROM analytics.ogc_summary_daily2
 GROUP BY bucket_monthly, app_id, app_name, user_name, org_name, request_method, status_code, server_address, workspaces,
      layers, service, request, tiled, is_download, download_format, user_agent_family, referrer;
 
--- set compression
--- see https://docs.timescale.com/use-timescale/latest/continuous-aggregates/compression-on-continuous-aggregates/
 SELECT add_continuous_aggregate_policy('analytics.ogc_summary_monthly',
   initial_start => '2025-11-11 00:00:05',
   start_offset => INTERVAL '6 months',
   end_offset => INTERVAL '0 hours',
   schedule_interval => INTERVAL '1 month');
-ALTER MATERIALIZED VIEW analytics.ogc_summary_monthly set (timescaledb.compress = true);
-SELECT add_compression_policy('analytics.ogc_summary_monthly', compress_after=>'7 months'::interval);
 
 
 CALL refresh_continuous_aggregate('analytics.ogc_summary_hourly', '2021-05-01', '2026-05-14');
