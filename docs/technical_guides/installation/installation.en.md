@@ -19,6 +19,17 @@ This is a database solution, targeting massive time-series data. It is actually 
 already deal with PostgreSQL in geOrchestra, this makes TimescaleDB a very good match for storing and managing our
 analytics data.
 
+!!! note "Choosing the proper version"
+
+    You will need the **_community_** version of TimescaleDB.
+
+    TigerData are distributing timescaleDB for free use under 2 different licenses. They're explaining why in 
+    [this blog post](https://www.tigerdata.com/blog/how-we-are-building-a-self-sustaining-open-source-business-in-the-cloud-era).  
+    While it would make sense to use the _OSS_ version, it lacks so many features that it wouldn't be of much use.  
+    Using the _community_ version is legit in our use-case, it falls under the "Value-added services" category of their 
+    [licensing legal terms](https://www.tigerdata.com/legal/licenses#2-grant-of-licenses). which we strongly suggest you 
+    read to check for yourself and for your specific use-case.
+
 TimescaleDB provides documentation about how to self-host an instance: https://docs.timescale.com/self-hosted/latest/.
 Or you can also opt for a SAAS database (paid option of course).
 
@@ -28,8 +39,6 @@ a SAAS, depending on your choices and needs. _**This will be up to you to decide
 You will need the following postgresql timescaledb-related *extensions*:
 
 - `timescaledb`
-- [`timescaledb-toolkit`](https://www.tigerdata.com/docs/self-hosted/latest/tooling/install-toolkit) (extra 
-functionalities, needed for instance to aggregate statistical data)
 
 The docker compose and helm chart will come with an optional built-in light installation of TimescaleDB (no HA, no QoS
 warranty).
