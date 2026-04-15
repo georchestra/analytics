@@ -11,8 +11,8 @@ timescaledb:
   builtin: true
   timezone: "Europe/Paris"
   replicaCount: 1
-  imagePullPolicy: Always
-  docker_image: timescale/timescaledb-ha:pg17
+  imagePullPolicy: IfNotPresent
+  docker_image: timescale/timescaledb:2.26.3-pg17
   auth:
     # existingSecret: will_replace_below_auth_settings
     database: analytics
@@ -54,8 +54,8 @@ timescaledb:
 vector:
   enabled: true
   replicaCount: 1
-  docker_image: timberio/vector:0.46.X-alpine
-  imagePullPolicy: Always
+  docker_image: timberio/vector:0.54.0-alpine
+  imagePullPolicy: IfNotPresent
   # Name of the table to which Vector will write
   db_opentelemetry_table: "analytics.opentelemetry_buffer"
   resources: {}
@@ -140,9 +140,9 @@ cli:
     coverDurationHours: 1
     # Max number of records per hour.
     maxRate: 50
-  schedule: "0 01 * * *"
-  image: georchestra/analytics-cli:latest
-  imagePullPolicy: Always
+  schedule: "0 * * * *"
+  image: georchestra/analytics-cli:2.0.0
+  imagePullPolicy: IfNotPresent
   # Configure the CLI app
   config: |-
     performance:
