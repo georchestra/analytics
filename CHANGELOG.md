@@ -1,7 +1,16 @@
 
 # Changelog
 
-## version 1.0.0
+## Version 2.0.0
+
+- [Decided](https://github.com/georchestra/improvement-proposals/issues/11#issuecomment-4045295516) to start versioning at v2 (v1 referring to old analytics module)
+- [ogc-api support](https://github.com/georchestra/analytics/pull/8)
+- [removed dependency on timescaledb-toolkit package](https://github.com/georchestra/analytics/commit/d67f639327ee0bc9feb7f8319b8989cb130e5527)
+- [refactored documentation](https://github.com/georchestra/analytics/commit/f3a5156df1fc39832544a6a40d96d7829b6600db)
+- bugfixes for regex parsing
+- added referrer and user-agent graphs
+
+## Version 1.0.0
 
 - **documentation** 
 - improved timezone support
