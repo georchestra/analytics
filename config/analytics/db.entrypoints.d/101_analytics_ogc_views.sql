@@ -33,7 +33,7 @@ GROUP BY bucket_hourly, app_id, app_name, user_name, org_name, request_method, s
     request_details ->> 'request' , request_details ->> 'tiled', request_details ->> 'is_download',
     request_details ->> 'download_format', request_details ->> 'user_agent_family', request_details ->> 'referrer';
 
--- median would be better estimated using percentiel_agg
+-- median would be better estimated using percentile_agg
 -- https://docs.timescale.com/use-timescale/latest/continuous-aggregates/hierarchical-continuous-aggregates/#roll-up-calculations
 -- but it belongs to timescaledb_toolkit, which is a heavier dependency.
 
@@ -129,6 +129,80 @@ SELECT add_continuous_aggregate_policy('analytics.ogc_summary_monthly',
 CALL refresh_continuous_aggregate('analytics.ogc_summary_hourly', '2021-05-01', '2026-05-14');
 CALL refresh_continuous_aggregate('analytics.ogc_summary_daily', '2021-05-01', '2026-05-14');
 CALL refresh_continuous_aggregate('analytics.ogc_summary_monthly', '2021-05-01', '2026-05-14');
+
+CREATE VIEW analytics.ogc_summary AS
+    SELECT 'hour' as period,
+           bucket_hourly as bucket,
+            app_id,
+            app_name,
+            user_name,
+            org_name,
+            request_method,
+            status_code,
+            server_address,
+            workspaces,
+            layers,
+            service,
+            request,
+            tiled,
+            is_download,
+            download_format,
+            user_agent_family,
+            referrer,
+            nb_req,
+            response_time_median,
+            response_time_min,
+            response_time_max
+        FROM analytics.ogc_summary_hourly
+    UNION
+    SELECT 'day' as period,
+           bucket_daily as bucket,
+            app_id,
+            app_name,
+            user_name,
+            org_name,
+            request_method,
+            status_code,
+            server_address,
+            workspaces,
+            layers,
+            service,
+            request,
+            tiled,
+            is_download,
+            download_format,
+            user_agent_family,
+            referrer,
+            nb_req,
+            response_time_median,
+            response_time_min,
+            response_time_max
+        FROM analytics.ogc_summary_daily
+    UNION
+    SELECT 'month' as period,
+           bucket_monthly as bucket,
+            app_id,
+            app_name,
+            user_name,
+            org_name,
+            request_method,
+            status_code,
+            server_address,
+            workspaces,
+            layers,
+            service,
+            request,
+            tiled,
+            is_download,
+            download_format,
+            user_agent_family,
+            referrer,
+            nb_req,
+            response_time_median,
+            response_time_min,
+            response_time_max
+         FROM analytics.ogc_summary_monthly;
+
 
 -- Watch retention policies state (see https://docs.timescale.com/api/latest/data-retention/add_retention_policy/#add_retention_policy):
 -- SELECT j.hypertable_name,
