@@ -57,11 +57,7 @@ DEFAULT_DASHBOARDS_DIR = "/dashboards"
 
 def compute_file_hash(filepath: Path) -> str:
     """Return the SHA-256 hex digest of a file."""
-    h = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    return hashlib.file_digest(open(filepath, "rb"), "sha256").hexdigest()
 
 
 def extract_dashboard_uuids(zip_path: Path) -> list[str]:
@@ -73,7 +69,8 @@ def extract_dashboard_uuids(zip_path: Path) -> list[str]:
     uuids = []
     with zipfile.ZipFile(zip_path) as zf:
         for name in zf.namelist():
-            if "/dashboards/" in name and name.endswith(".yaml"):
+            relative = name.split("/", 1)[1] if "/" in name else name
+            if relative.startswith("dashboards/") and relative.endswith(".yaml"):
                 with zf.open(name) as entry:
                     for raw_line in entry:
                         line = raw_line.decode("utf-8", errors="replace").strip()
@@ -94,10 +91,9 @@ def patch_zip_database_uri(zip_path: Path, db_uri: str) -> io.BytesIO:
             if relative.startswith("databases/") and relative.endswith(".yaml"):
                 text = data.decode("utf-8")
                 text = re.sub(
-                    r"^(sqlalchemy_uri:\s*).*$",
+                    r"(sqlalchemy_uri:\s*).*",
                     rf"\g<1>{db_uri}",
                     text,
-                    flags=re.MULTILINE,
                 )
                 data = text.encode("utf-8")
                 logger.info("Patched sqlalchemy_uri in %s", item.filename)
