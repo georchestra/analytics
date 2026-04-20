@@ -27,12 +27,13 @@ Usage (geOrchestra sec-proxy headers):
 
 Environment variables (fallbacks for CLI options):
     SUPERSET_URL, SUPERSET_USERNAME, SUPERSET_PASSWORD,
-    DASHBOARDS_DIR, SUPERSET_DB_PASSWORDS,
+    DASHBOARDS_DIR, ANALYTICS_DB_URI,
     SEC_USERNAME, SEC_ROLES, SEC_EMAIL
 """
 
 import argparse
 import hashlib
+import io
 import json
 import logging
 import os
@@ -83,6 +84,28 @@ def extract_dashboard_uuids(zip_path: Path) -> list[str]:
     return uuids
 
 
+def patch_zip_database_uri(zip_path: Path, db_uri: str) -> io.BytesIO:
+    """Return a new in-memory zip with ``sqlalchemy_uri`` replaced in all database configs."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(zip_path) as src, zipfile.ZipFile(buf, "w") as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            relative = item.filename.split("/", 1)[1] if "/" in item.filename else item.filename
+            if relative.startswith("databases/") and relative.endswith(".yaml"):
+                text = data.decode("utf-8")
+                text = re.sub(
+                    r"^(sqlalchemy_uri:\s*).*$",
+                    rf"\g<1>{db_uri}",
+                    text,
+                    flags=re.MULTILINE,
+                )
+                data = text.encode("utf-8")
+                logger.info("Patched sqlalchemy_uri in %s", item.filename)
+            dst.writestr(item, data)
+    buf.seek(0)
+    return buf
+
+
 # ---------------------------------------------------------------------------
 # Superset client
 # ---------------------------------------------------------------------------
@@ -90,12 +113,12 @@ def extract_dashboard_uuids(zip_path: Path) -> list[str]:
 class SupersetClient:
     """Minimal Superset REST API client for dashboard import & tagging."""
 
-    def __init__(self, base_url: str, db_passwords: dict | None = None,
+    def __init__(self, base_url: str, db_uri: str | None = None,
                  username: str | None = None, password: str | None = None,
                  sec_username: str | None = None, sec_roles: str | None = None,
                  sec_email: str | None = None):
         self.base_url = base_url.rstrip("/")
-        self.db_passwords = db_passwords or {}
+        self.db_uri = db_uri
         self.session = requests.Session()
 
         # Auth mode: geOrchestra sec-headers or classic username/password
@@ -206,13 +229,20 @@ class SupersetClient:
     def import_dashboard(self, zip_path: Path) -> bool:
         """Import a dashboard zip with overwrite=true. Returns True on success."""
         url = f"{self.base_url}/api/v1/dashboard/import/"
-        with open(zip_path, "rb") as f:
-            files = {"formData": (zip_path.name, f, "application/zip")}
-            data: dict[str, str] = {"overwrite": "true"}
-            if self.db_passwords:
-                data["passwords"] = json.dumps(self.db_passwords)
+
+        if self.db_uri:
+            patched = patch_zip_database_uri(zip_path, self.db_uri)
+            files = {"formData": (zip_path.name, patched, "application/zip")}
+        else:
+            files = {"formData": (zip_path.name, open(zip_path, "rb"), "application/zip")}
+
+        data: dict[str, str] = {"overwrite": "true"}
+
+        try:
             resp = self.session.post(url, files=files, data=data,
                                      headers=self._csrf_headers())
+        finally:
+            files["formData"][1].close()
 
         if resp.ok:
             logger.info("Successfully imported '%s'", zip_path.name)
@@ -230,7 +260,7 @@ class SupersetClient:
 def sync_dashboards(
     superset_url: str,
     dashboards_dir: str,
-    db_passwords: dict | None = None,
+    db_uri: str | None = None,
     force: bool = False,
     username: str | None = None,
     password: str | None = None,
@@ -250,7 +280,7 @@ def sync_dashboards(
         return 0
 
     client = SupersetClient(
-        superset_url, db_passwords=db_passwords,
+        superset_url, db_uri=db_uri,
         username=username, password=password,
         sec_username=sec_username, sec_roles=sec_roles, sec_email=sec_email,
     )
@@ -318,9 +348,10 @@ def main():
         help="Directory containing .zip dashboard exports (default: $DASHBOARDS_DIR or /dashboards)",
     )
     parser.add_argument(
-        "--db-passwords",
-        default=os.environ.get("SUPERSET_DB_PASSWORDS"),
-        help='JSON map of database passwords, e.g. \'{"databases/analytics.yaml": "pwd"}\'',
+        "--db-uri",
+        default=os.environ.get("ANALYTICS_DB_URI"),
+        help="Override the sqlalchemy_uri in database configs, "
+             "e.g. 'postgresql://tsdb:pwd@host:5432/analytics' (default: $ANALYTICS_DB_URI)",
     )
     parser.add_argument(
         "--force", action="store_true",
@@ -373,15 +404,13 @@ def main():
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    db_passwords = json.loads(args.db_passwords) if args.db_passwords else {}
-
     # Classic auth takes priority when explicitly provided; otherwise default
     # to geOrchestra sec-header auth.
     use_classic = args.username is not None
     updated = sync_dashboards(
         superset_url=args.superset_url,
         dashboards_dir=args.dashboards_dir,
-        db_passwords=db_passwords,
+        db_uri=args.db_uri,
         force=args.force,
         username=args.username if use_classic else None,
         password=args.password if use_classic else None,
