@@ -9,13 +9,11 @@ RUN adduser --uid ${UID} --disabled-password --home /app --shell /bin/sh --ingro
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY tools/sync_dashboards/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY sync_dashboards.py .
-
-# Default dashboards directory — mount your .zip exports here
-VOLUME ["/dashboards"]
+COPY tools/sync_dashboards/sync_dashboards.py .
+COPY dashboards/superset /dashboards
 
 USER appuser
 
