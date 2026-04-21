@@ -6,8 +6,9 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - '.github/workflows/build-sync-dashboards.yaml'
+      - '.github/workflows/build-sync-dashboards.yml'
       - 'tools/sync_dashboards/**'
+      - 'dashboards/superset/**'
 
 jobs:
   build:
@@ -44,8 +45,8 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v6
         with:
-          context: ./tools/sync_dashboards
-          file: ./tools/sync_dashboards/Dockerfile
+          context: .
+          file: tools/sync_dashboards/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref_type == 'tag') }}
           tags: ${{ steps.meta-frontent.outputs.tags }}
