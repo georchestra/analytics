@@ -28,6 +28,7 @@ Usage (geOrchestra sec-proxy headers):
 Environment variables (fallbacks for CLI options):
     SUPERSET_URL, SUPERSET_USERNAME, SUPERSET_PASSWORD,
     DASHBOARDS_DIR, ANALYTICS_DB_URI,
+    TSDB_USER, TSDB_PASSWORD, TSDB_HOST, TSDB_PORT, TSDB_NAME,
     SEC_USERNAME, SEC_ROLES, SEC_EMAIL
 """
 
@@ -58,6 +59,25 @@ DEFAULT_DASHBOARDS_DIR = "/dashboards"
 def compute_file_hash(filepath: Path) -> str:
     """Return the SHA-256 hex digest of a file."""
     return hashlib.file_digest(open(filepath, "rb"), "sha256").hexdigest()
+
+
+def _default_db_uri() -> str | None:
+    """Resolve the default ``--db-uri`` from environment variables.
+
+    Precedence: ``$ANALYTICS_DB_URI`` wins; otherwise assemble from
+    ``$TSDB_USER`` / ``$TSDB_PASSWORD`` / ``$TSDB_HOST`` / ``$TSDB_PORT`` /
+    ``$TSDB_NAME`` if all are set.
+    """
+    if uri := os.environ.get("ANALYTICS_DB_URI"):
+        return uri
+    keys = ("TSDB_USER", "TSDB_PASSWORD", "TSDB_HOST", "TSDB_PORT", "TSDB_NAME")
+    parts = {k: os.environ.get(k) for k in keys}
+    if all(parts.values()):
+        return (
+            f"postgresql://{parts['TSDB_USER']}:{parts['TSDB_PASSWORD']}"
+            f"@{parts['TSDB_HOST']}:{parts['TSDB_PORT']}/{parts['TSDB_NAME']}"
+        )
+    return None
 
 
 def extract_dashboard_uuids(zip_path: Path) -> list[str]:
@@ -345,9 +365,11 @@ def main():
     )
     parser.add_argument(
         "--db-uri",
-        default=os.environ.get("ANALYTICS_DB_URI"),
+        default=_default_db_uri(),
         help="Override the sqlalchemy_uri in database configs, "
-             "e.g. 'postgresql://tsdb:pwd@host:5432/analytics' (default: $ANALYTICS_DB_URI)",
+             "e.g. 'postgresql://tsdb:pwd@host:5432/analytics' "
+             "(default: $ANALYTICS_DB_URI, or assembled from "
+             "$TSDB_USER/$TSDB_PASSWORD/$TSDB_HOST/$TSDB_PORT/$TSDB_NAME).",
     )
     parser.add_argument(
         "--force", action="store_true",
