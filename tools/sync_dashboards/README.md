@@ -64,9 +64,24 @@ All options can be set via CLI flags or environment variables.
 |------|---------|---------|-------------|
 | `--superset-url` | `SUPERSET_URL` | `http://localhost:8088` | Superset base URL |
 | `--dashboards-dir` | `DASHBOARDS_DIR` | `/dashboards` | Directory containing `.zip` exports |
-| `--db-uri` | `ANALYTICS_DB_URI` | *(none)* | Override `sqlalchemy_uri` in database configs |
+| `--db-uri` | `ANALYTICS_DB_URI` | *(none)* | Override `sqlalchemy_uri` in database configs (see below) |
 | `--force` | | `false` | Import even if the hash hasn't changed |
 | `--verbose` / `-v` | | `false` | Debug logging |
+
+### Database URI
+
+If `--db-uri` / `$ANALYTICS_DB_URI` is not set, the URI is assembled from the
+following env vars (all five must be set):
+
+| Env var | Example |
+|---------|---------|
+| `TSDB_USER` | `tsdb` |
+| `TSDB_PASSWORD` | `password` |
+| `TSDB_HOST` | `timescaledb` |
+| `TSDB_PORT` | `5432` |
+| `TSDB_NAME` | `analytics` |
+
+Result: `postgresql://$TSDB_USER:$TSDB_PASSWORD@$TSDB_HOST:$TSDB_PORT/$TSDB_NAME`
 
 ### geOrchestra auth (default)
 
