@@ -74,6 +74,40 @@ analytics-cli --config-file /path/to/config.yaml db upgrade
 
 The `--config-file` option (or `GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE` env var) is required whenever the default config doesn't match your database connection.
 
+### Writing migrations
+
+New revision files go in `src/georchestra_analytics_cli/alembic/versions/`. Use `op.execute()` for all DDL — TimescaleDB-specific operations (hypertables, continuous aggregates, retention/compression policies) have no SQLAlchemy ORM equivalent and must remain raw SQL.
+
+#### Changing OGC view definitions
+
+Dropping and recreating a continuous aggregate view while its retention policy is active risks data loss: the background job may prune freshly-refreshed buckets before the daily/monthly aggregates can roll them up. Always use the `safe_recreate` helper from `alembic/sql/ogc_views.py`:
+
+```python
+from georchestra_analytics_cli.alembic.sql import ogc_views
+
+MY_NEW_OGC_HOURLY = """
+    CREATE MATERIALIZED VIEW analytics.ogc_summary_hourly
+    WITH (timescaledb.continuous) AS
+    SELECT ...
+"""
+
+def upgrade() -> None:
+    # Removes retention policies, drops all OGC views, recreates with new definitions,
+    # refreshes bottom-up (hourly → daily → monthly), then restores all policies.
+    ogc_views.safe_recreate(op, hourly_sql=MY_NEW_OGC_HOURLY)
+
+def downgrade() -> None:
+    ogc_views.safe_recreate(op)  # restores original definitions
+```
+
+The helper also exposes `ogc_views.create(op)` and `ogc_views.drop(op)` for use in initial migrations.
+
+| Scenario | What to do |
+|----------|------------|
+| New column on `access_logs` not used by OGC views | Nothing — views stay valid |
+| OGC view query changes (new field, filter, bucketing) | `ogc_views.safe_recreate(op, ...)` |
+| Only policy changes (retention interval, schedule) | `remove_*_policy` + `add_*_policy`, no drop |
+
 ## Build & publish
 
 This project is based on [pyScaffold](https://pypi.org/project/PyScaffold/) and uses [tox](https://tox.wiki/en/latest/installation.html) for the build.
