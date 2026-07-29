@@ -66,6 +66,25 @@ http:
 
 ### Exposing the logs over OpenTelemetry protocol
 
+## If using the official gateway image
+
+The spring-boot maven plugin is making use of the paketo buildpacks to build the docker image. As a result, it is already
+bundled with the needed Java agent, and only requires some environment variables to be set to activate log collection.
+
+If you are using the docker image, then you only need to pass the following environment variables:
+
+```
+OTEL_JAVAAGENT_ENABLED=true
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+OTEL_EXPORTER_OTLP_ENDPOINT=http://url-to-otlp-endpoint:4317
+OTEL_INSTRUMENTATION_LOGBACK_APPENDER_EXPERIMENTAL_CAPTURE_MDC_ATTRIBUTES=*
+OTEL_TRACES_EXPORTER=none
+OTEL_METRICS_EXPORTER=none
+OTEL_LOGS_EXPORTER=otlp
+```
+
+## Manual setup of the Java-agent
+
 The OpenTelemetry project provides a [java-agent](https://opentelemetry.io/docs/zero-code/java/agent/) as a simple means
 to instrument your software.
 
@@ -117,26 +136,23 @@ TODO: provide the environment variable equivalent
 
 !!! note "Some contextual information about logging and the Gateway"
 
-    You might see another way to retrieve access logs. By default, Spring Cloud Gateway reactive, on which the 
-    geOrchestra Gateway is built, uses Netty as its internal webserver. 
-    Netty can be configured to enable its access logs. But this is not how we manage it in the gateway and, regarding 
-    analytics purposes, even though you can use them, you will get poor and less consistent results (no user/org info 
+    You might see another way to retrieve access logs. By default, Spring Cloud Gateway reactive, on which the
+    geOrchestra Gateway is built, uses Netty as its internal webserver.
+    Netty can be configured to enable its access logs. But this is not how we manage it in the gateway and, regarding
+    analytics purposes, even though you can use them, you will get poor and less consistent results (no user/org info
     noticeably)
 
 !!! tip "json-logs"
 
-    You will read on the Gateway's documentation instructions on how to enable JSON log format. And since the 
-    user/roles/org information is only visible with the JSON output, you might think that it is necessary for the 
+    You will read on the Gateway's documentation instructions on how to enable JSON log format. And since the
+    user/roles/org information is only visible with the JSON output, you might think that it is necessary for the
     collection of all interesting information, for analytics purposes.  
     ***It is not***.   
     Those are two separate concerns:
 
     - json-logs will affect the logs sent to the logs handlers, most commonly the console (or file output). It's up
       to you to decide if you prefer CLF-like text logs lines, or json records for this.
-    - the logs collected using OpenTelemetry will be sent in JSON structure *anyway*, including all MDCs, including 
-      user/roles/org information. Provided you follow the 
-      [related config instructions](https://docs.georchestra.org/gateway/en/latest/user_guide/configuration/#userauthentication-mdc-properties), 
+    - the logs collected using OpenTelemetry will be sent in JSON structure *anyway*, including all MDCs, including
+      user/roles/org information. Provided you follow the
+      [related config instructions](https://docs.georchestra.org/gateway/en/latest/user_guide/configuration/#userauthentication-mdc-properties),
       of course.
-
-
-
