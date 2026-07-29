@@ -1,8 +1,11 @@
 import logging
+import pathlib
 from datetime import datetime, timedelta, timezone
 from logging.config import dictConfig
 
 import click
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
 from prometheus_client import (
     CollectorRegistry,
     Gauge,
@@ -11,6 +14,7 @@ from prometheus_client import (
     write_to_textfile,
 )
 
+import georchestra_analytics_cli
 from georchestra_analytics_cli import __version__, dist_name
 from georchestra_analytics_cli.access_logs.AccessLogProcessor import AccessLogProcessor
 from georchestra_analytics_cli.config import Config, load_config_from
@@ -158,6 +162,46 @@ def fake2db(start: str = None, stop: str = None, last_n_hours: int = 1, rate: in
             conf.get_metrics_metrics_file_path(),
             conf.get_metrics_pushgateway_url(),
         )
+
+
+def _get_alembic_config() -> AlembicConfig:
+    pkg_root = pathlib.Path(georchestra_analytics_cli.__file__).parent
+    alembic_cfg = AlembicConfig(str(pkg_root / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", str(pkg_root / "alembic"))
+    return alembic_cfg
+
+
+@cli.group()
+def db():
+    """Database schema migration commands."""
+    pass
+
+
+@db.command()
+@click.option("--revision", default="head", show_default=True, help="Target revision.")
+def upgrade(revision):
+    """Apply pending migrations up to the target revision."""
+    alembic_command.upgrade(_get_alembic_config(), revision)
+
+
+@db.command()
+def current():
+    """Show the current migration revision."""
+    alembic_command.current(_get_alembic_config(), verbose=True)
+
+
+@db.command()
+@click.option("--revision", default="head", show_default=True, help="Target revision.")
+def stamp(revision):
+    """Mark the DB as at revision without running migrations (use for existing installs)."""
+    alembic_command.stamp(_get_alembic_config(), revision)
+
+
+@db.command()
+@click.option("--revision", default="-1", show_default=True, help="Target revision.")
+def downgrade(revision):
+    """Downgrade to a previous revision."""
+    alembic_command.downgrade(_get_alembic_config(), revision)
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ services:
 #      - "0.0.0.0:4318:4318"   # OTLP http/protobuf receiver
 #      - 8686:8686
     volumes:
-      - ./config/analytics/vector.yml:/etc/vector/vector.yaml:ro
+      - ../config/analytics/vector.yml:/etc/vector/vector.yaml:ro
     env_file:
       - .envs-analytics
 
@@ -37,6 +37,6 @@ services:
 #      - POSTGRES_PASSWORD=password
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
-      - ./config/analytics/db.entrypoints.d:/docker-entrypoint-initdb.d/:ro
+      - ../config/analytics/db.entrypoints.d:/docker-entrypoint-initdb.d/:ro
     restart: always
     

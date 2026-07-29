@@ -46,7 +46,7 @@ database:
   database: "analytics"
   #  schema: analytics
   username: "tsdb"
-  password: !ENV "${GOA_DB_PASSWORD:secret}"
+  password: !ENV "${GOA_DB_PASSWORD:password}"
 
 # Logs parsers config. If running over opentelemetry logs, this is the one you will want to have properly configured.
 # If running on CLF-like log files, you will rely on the text_message parser below.
