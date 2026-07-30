@@ -1,8 +1,11 @@
 import logging
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import datetime, time as datetime_time, timedelta
 from logging.config import dictConfig
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import click
+from croniter import CroniterBadCronError, croniter
 from prometheus_client import (
     CollectorRegistry,
     Gauge,
@@ -36,13 +39,44 @@ g = Gauge(
 )
 
 
+def _resolve_timezone(timezone_name: str) -> ZoneInfo:
+    try:
+        return ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        module_logger.warning(
+            f"Unknown timezone '{timezone_name}', fallback to UTC for scheduling"
+        )
+        return ZoneInfo("UTC")
+
+def _seconds_until_next_cron_run(
+    cron_expression: str,
+    timezone_name: str,
+    now: datetime | None = None,
+) -> float:
+    tz = _resolve_timezone(timezone_name)
+
+    if now is None:
+        now = datetime.now(tz)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=tz)
+    else:
+        now = now.astimezone(tz)
+
+    try:
+        next_run = croniter(cron_expression, now).get_next(datetime)
+    except (CroniterBadCronError, ValueError) as exc:
+        raise click.BadParameter("Invalid cron expression") from exc
+
+    return (next_run - now).total_seconds()
+
+
 @click.group(invoke_without_command=True, no_args_is_help=True)
 @click.option("--version", default=False, is_flag=True)
 @click.option("--config-file", envvar="GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE")
 def cli(version, config_file):
-    if version:
-        print(f"{dist_name} {__version__}")
 
+    print(f"{dist_name} {__version__}")
+    print(f"{config_file}")
     global conf
     conf = load_config_from(config_file)
     # Configure logging
@@ -57,23 +91,52 @@ def cli(version, config_file):
 
 
 @cli.command()
-def buffer2db():
+@click.option(
+    "--cron",
+    type=str,
+    default=None,
+    help="Cron expression for execution schedule (configured timezone), e.g. '0 2 * * *'. Requires --loop.",
+)
+def buffer2db(cron: str | None):
     """
     Retrieve the logs data from the database buffer table, process them, write the result into the access_logs
     (hyper)table.
+    By default it runs once. Use --cron to run continuously.
     """
-    with s.labels(command="buffer2db").time():
-        log_processor = AccessLogProcessor()
-        log_processor.process_buffer_table()
 
-        g.labels(command="buffer2db").set_to_current_time()
+    if cron:
+        _seconds_until_next_cron_run(cron, conf.get_timezone())
 
-    if conf.is_metrics_enabled():
-        write_prometheus_metrics(
-            registry,
-            conf.get_metrics_metrics_file_path(),
-            conf.get_metrics_pushgateway_url(),
-        )
+    try:
+        while True:
+            with s.labels(command="buffer2db").time():
+                log_processor = AccessLogProcessor()
+                log_processor.process_buffer_table()
+
+                g.labels(command="buffer2db").set_to_current_time()
+
+            if conf.is_metrics_enabled():
+                write_prometheus_metrics(
+                    registry,
+                    conf.get_metrics_metrics_file_path(),
+                    conf.get_metrics_pushgateway_url(),
+                )
+
+            if not cron:
+                break
+
+
+            sleep_seconds = _seconds_until_next_cron_run(
+                cron,
+                conf.get_timezone(),
+            )
+            module_logger.info(
+                f"Next buffer2db run scheduled with cron '{cron}' ({conf.get_timezone()}) in {int(sleep_seconds)}s"
+            )
+
+            time.sleep(sleep_seconds)
+    except Exception:
+        module_logger.info("Interrupted stopping buffer2db")
 
 
 @cli.command()
