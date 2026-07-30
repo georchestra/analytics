@@ -72,17 +72,17 @@ Examples:
 ```bash
 ./docker_build.sh --mode=release
 ```
-- Build from the 2.0.0 version from pypi: (version 2.0.0 has to exist there)
+- Build from the 2.1.0 version from pypi: (version 2.1.0 has to exist there)
 ```bash
-./docker_build.sh --mode=release --version=2.0.0
+./docker_build.sh --mode=release --version=2.1.0
 ```
-- Build from the 2.0.0 version from test.pypi: (version 2.0.0 has to exist there)
+- Build from the 2.1.0 version from test.pypi: (version 2.1.0 has to exist there)
 ```bash
-./docker_build.sh --mode=test --version=2.0.0
+./docker_build.sh --mode=test --version=2.1.0
 ```
-- Build from local codebase, tag it 2.0.0-dirty:
+- Build from local codebase, tag it 2.1.0-dirty:
 ```bash
-./docker_build.sh --mode=dev --version=2.0.0-dirty
+./docker_build.sh --mode=dev --version=2.1.0-dirty
 ```
 - Build from local codebase, use the auto-generated tag:
 ```bash

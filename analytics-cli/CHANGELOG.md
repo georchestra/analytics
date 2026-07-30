@@ -1,6 +1,12 @@
 
 # Changelog
 
+# version 2.1.0
+
+* adding config/analytics_cli.yaml into python package by @jeanmi151 in https://github.com/georchestra/analytics/pull/24
+* analytics_cli run in loop with cron by @jeanmi151 in https://github.com/georchestra/analytics/pull/25
+
+
 ## version 1.0.x
 
 - **bugfix**: Fixed `ON CONFLICT` error by removing duplicate index definition in SQLAlchemy models
