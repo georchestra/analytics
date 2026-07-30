@@ -48,6 +48,7 @@ def _resolve_timezone(timezone_name: str) -> ZoneInfo:
         )
         return ZoneInfo("UTC")
 
+
 def _seconds_until_next_cron_run(
     cron_expression: str,
     timezone_name: str,
@@ -124,7 +125,6 @@ def buffer2db(cron: str | None):
 
             if not cron:
                 break
-
 
             sleep_seconds = _seconds_until_next_cron_run(
                 cron,
