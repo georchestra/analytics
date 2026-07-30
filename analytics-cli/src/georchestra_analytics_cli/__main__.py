@@ -1,8 +1,10 @@
 import logging
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import datetime, timedelta
 from logging.config import dictConfig
 
 import click
+
 from prometheus_client import (
     CollectorRegistry,
     Gauge,
@@ -14,7 +16,7 @@ from prometheus_client import (
 from georchestra_analytics_cli import __version__, dist_name
 from georchestra_analytics_cli.access_logs.AccessLogProcessor import AccessLogProcessor
 from georchestra_analytics_cli.config import Config, load_config_from
-from georchestra_analytics_cli.utils import write_prometheus_metrics
+from georchestra_analytics_cli.utils import write_prometheus_metrics, _seconds_until_next_cron_run
 
 module_logger = logging.getLogger(__name__)
 
@@ -34,7 +36,6 @@ g = Gauge(
     registry=registry,
     labelnames=["command"],
 )
-
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
 @click.option("--version", default=False, is_flag=True)
@@ -57,23 +58,51 @@ def cli(version, config_file):
 
 
 @cli.command()
-def buffer2db():
+@click.option(
+    "--cron",
+    type=str,
+    default=None,
+    help="Cron expression for execution schedule (configured timezone), e.g. '0 2 * * *'. Requires --loop.",
+)
+def buffer2db(cron: str | None):
     """
     Retrieve the logs data from the database buffer table, process them, write the result into the access_logs
     (hyper)table.
+    By default it runs once. Use --cron to run continuously.
     """
-    with s.labels(command="buffer2db").time():
-        log_processor = AccessLogProcessor()
-        log_processor.process_buffer_table()
 
-        g.labels(command="buffer2db").set_to_current_time()
+    if cron:
+        _seconds_until_next_cron_run(cron, conf.get_timezone())
 
-    if conf.is_metrics_enabled():
-        write_prometheus_metrics(
-            registry,
-            conf.get_metrics_metrics_file_path(),
-            conf.get_metrics_pushgateway_url(),
-        )
+    try:
+        while True:
+            with s.labels(command="buffer2db").time():
+                log_processor = AccessLogProcessor()
+                log_processor.process_buffer_table()
+
+                g.labels(command="buffer2db").set_to_current_time()
+
+            if conf.is_metrics_enabled():
+                write_prometheus_metrics(
+                    registry,
+                    conf.get_metrics_metrics_file_path(),
+                    conf.get_metrics_pushgateway_url(),
+                )
+
+            if not cron:
+                break
+
+            sleep_seconds = _seconds_until_next_cron_run(
+                cron,
+                conf.get_timezone(),
+            )
+            module_logger.info(
+                f"Next buffer2db run scheduled with cron '{cron}' ({conf.get_timezone()}) in {int(sleep_seconds)}s"
+            )
+
+            time.sleep(sleep_seconds)
+    except Exception:
+        module_logger.info("Interrupted stopping buffer2db")
 
 
 @cli.command()

@@ -1,8 +1,14 @@
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+import click
 from prometheus_client import push_to_gateway, write_to_textfile
+from croniter import CroniterBadCronError, croniter
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from datetime import datetime
+import logging
 
+module_logger = logging.getLogger(__name__)
 
 def int_or_none(value):
     try:
@@ -66,3 +72,35 @@ def write_prometheus_metrics(registry, metrics_filepath, pushgateway_url):
         push_to_gateway(pushgateway_url, job="analytics-cli", registry=registry)
     if metrics_filepath:
         write_to_textfile(metrics_filepath, registry)
+
+
+def _resolve_timezone(timezone_name: str) -> ZoneInfo:
+    try:
+        return ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        module_logger.warning(
+            f"Unknown timezone '{timezone_name}', fallback to UTC for scheduling"
+        )
+        return ZoneInfo("UTC")
+
+
+def _seconds_until_next_cron_run(
+    cron_expression: str,
+    timezone_name: str,
+    now: datetime | None = None,
+) -> float:
+    tz = _resolve_timezone(timezone_name)
+
+    if now is None:
+        now = datetime.now(tz)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=tz)
+    else:
+        now = now.astimezone(tz)
+
+    try:
+        next_run = croniter(cron_expression, now).get_next(datetime)
+    except (CroniterBadCronError, ValueError) as exc:
+        raise click.BadParameter("Invalid cron expression") from exc
+
+    return (next_run - now).total_seconds()
