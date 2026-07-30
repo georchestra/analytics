@@ -16,7 +16,11 @@ if __name__ == "__main__":
                 "root": "..",
                 "relative_to": __file__,
                 "version_scheme": "no-guess-dev",
-            }
+            },
+            package_data={
+                "georchestra_analytics_cli": ["config/analytics_cli.yaml"],
+            },
+            include_package_data=True,
         )
     except:  # noqa
         print(
