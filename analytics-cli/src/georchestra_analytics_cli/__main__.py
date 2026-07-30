@@ -74,9 +74,9 @@ def _seconds_until_next_cron_run(
 @click.option("--version", default=False, is_flag=True)
 @click.option("--config-file", envvar="GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE")
 def cli(version, config_file):
+    if version:
+        print(f"{dist_name} {__version__}")
 
-    print(f"{dist_name} {__version__}")
-    print(f"{config_file}")
     global conf
     conf = load_config_from(config_file)
     # Configure logging
