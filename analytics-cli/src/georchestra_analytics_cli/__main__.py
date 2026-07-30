@@ -1,11 +1,10 @@
 import logging
 import time
-from datetime import datetime, time as datetime_time, timedelta
+from datetime import datetime, timedelta
 from logging.config import dictConfig
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import click
-from croniter import CroniterBadCronError, croniter
+
 from prometheus_client import (
     CollectorRegistry,
     Gauge,
@@ -17,7 +16,7 @@ from prometheus_client import (
 from georchestra_analytics_cli import __version__, dist_name
 from georchestra_analytics_cli.access_logs.AccessLogProcessor import AccessLogProcessor
 from georchestra_analytics_cli.config import Config, load_config_from
-from georchestra_analytics_cli.utils import write_prometheus_metrics
+from georchestra_analytics_cli.utils import write_prometheus_metrics, _seconds_until_next_cron_run
 
 module_logger = logging.getLogger(__name__)
 
@@ -37,39 +36,6 @@ g = Gauge(
     registry=registry,
     labelnames=["command"],
 )
-
-
-def _resolve_timezone(timezone_name: str) -> ZoneInfo:
-    try:
-        return ZoneInfo(timezone_name)
-    except ZoneInfoNotFoundError:
-        module_logger.warning(
-            f"Unknown timezone '{timezone_name}', fallback to UTC for scheduling"
-        )
-        return ZoneInfo("UTC")
-
-
-def _seconds_until_next_cron_run(
-    cron_expression: str,
-    timezone_name: str,
-    now: datetime | None = None,
-) -> float:
-    tz = _resolve_timezone(timezone_name)
-
-    if now is None:
-        now = datetime.now(tz)
-    elif now.tzinfo is None:
-        now = now.replace(tzinfo=tz)
-    else:
-        now = now.astimezone(tz)
-
-    try:
-        next_run = croniter(cron_expression, now).get_next(datetime)
-    except (CroniterBadCronError, ValueError) as exc:
-        raise click.BadParameter("Invalid cron expression") from exc
-
-    return (next_run - now).total_seconds()
-
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
 @click.option("--version", default=False, is_flag=True)
