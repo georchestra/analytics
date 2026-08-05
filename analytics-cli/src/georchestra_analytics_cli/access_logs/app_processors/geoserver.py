@@ -68,7 +68,12 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         path_based_ws = self.get_workspace_from_path(request_path)
         for layer in layerparam.split(","):
             if ":" in layer:
-                w, l = layer.split(":")
+                try:
+                    w, l = layer.split(":")
+                except ValueError:
+                    # mean the layer is not formated as workspace:layer
+                    # might be an incorrect request
+                    return [], []
                 workspaces.append(w)
                 layers.append(l)
             else:
