@@ -70,19 +70,19 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         if not layerparam:
             return [], []
         path_based_ws = self.get_workspace_from_path(request_path)
-        for layer in layerparam.split(","):
-            if ":" in layer:
-                try:
+        try:
+            for layer in layerparam.split(","):
+                if ":" in layer:
                     w, l = layer.split(":")
-                except ValueError:
-                    # mean the layer is not formated as workspace:layer
-                    # might be an incorrect request
-                    return [], []
-                workspaces.append(w)
-                layers.append(l)
-            else:
-                workspaces.append(path_based_ws)
-                layers.append(layer)
+                    workspaces.append(w)
+                    layers.append(l)
+                else:
+                    workspaces.append(path_based_ws)
+                    layers.append(layer)
+        except ValueError:
+            # mean the layer is not formated as workspace:layer
+            # might be an incorrect request
+            return [], []
         # if we have several layers, but they use all the same workspace, we can squash it into a single entry
         if len(workspaces) > 1 and len(set(workspaces)) == 1:
             workspaces = [workspaces[0]]
