@@ -46,8 +46,12 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
             workspaces, layers = self.normalize_layers(
                 request_path, infos.get("layers")
             )
-            infos["layers"] = ",".join(layers)
-            infos["workspaces"] = ",".join(workspaces)
+            if workspaces == [] and layers == []:
+                infos["is_valid"] = False
+            else:
+                infos["layers"] = ",".join(layers)
+                infos["workspaces"] = ",".join(workspaces)
+
         return infos
 
     def normalize_layers(self, request_path, layerparam) -> tuple[list[str], list[str]]:
