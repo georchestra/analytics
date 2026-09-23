@@ -43,15 +43,15 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
             return None
 
         if infos.get("layers", ""):
-            workspaces, layers = self.normalize_layers(
-                request_path, infos.get("layers")
-            )
-            if workspaces == [] and layers == []:
-                infos["is_valid"] = False
-            else:
+            try:
+                workspaces, layers = self.normalize_layers(
+                    request_path, infos.get("layers")
+                )
                 infos["layers"] = ",".join(layers)
                 infos["workspaces"] = ",".join(workspaces)
-
+            except ValueError:
+                # layer param is apparently not parsable -> incorrect request
+                infos["is_valid"] = False
         return infos
 
     def normalize_layers(self, request_path, layerparam) -> tuple[list[str], list[str]]:
