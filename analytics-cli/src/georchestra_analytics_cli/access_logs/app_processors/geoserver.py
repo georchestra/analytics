@@ -43,11 +43,15 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
             return None
 
         if infos.get("layers", ""):
-            workspaces, layers = self.normalize_layers(
-                request_path, infos.get("layers")
-            )
-            infos["layers"] = ",".join(layers)
-            infos["workspaces"] = ",".join(workspaces)
+            try:
+                workspaces, layers = self.normalize_layers(
+                    request_path, infos.get("layers")
+                )
+                infos["layers"] = ",".join(layers)
+                infos["workspaces"] = ",".join(workspaces)
+            except ValueError:
+                # layer param is apparently not parsable -> incorrect request
+                infos["is_valid"] = False
         return infos
 
     def normalize_layers(self, request_path, layerparam) -> tuple[list[str], list[str]]:
@@ -66,14 +70,19 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         if not layerparam:
             return [], []
         path_based_ws = self.get_workspace_from_path(request_path)
-        for layer in layerparam.split(","):
-            if ":" in layer:
-                w, l = layer.split(":")
-                workspaces.append(w)
-                layers.append(l)
-            else:
-                workspaces.append(path_based_ws)
-                layers.append(layer)
+        try:
+            for layer in layerparam.split(","):
+                if ":" in layer:
+                    w, l = layer.split(":")
+                    workspaces.append(w)
+                    layers.append(l)
+                else:
+                    workspaces.append(path_based_ws)
+                    layers.append(layer)
+        except ValueError:
+            # mean the layer is not formated as workspace:layer
+            # might be an incorrect request
+            return [], []
         # if we have several layers, but they use all the same workspace, we can squash it into a single entry
         if len(workspaces) > 1 and len(set(workspaces)) == 1:
             workspaces = [workspaces[0]]
