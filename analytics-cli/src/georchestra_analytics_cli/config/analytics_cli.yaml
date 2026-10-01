@@ -84,6 +84,11 @@ app_processors:
         csv: "CSV"
         excel: "Excel"
         excel2007: "Excel"
+    # HTTP status codes not counted as OGC requests (default: redirections). [] to count all
+    # ignored_status_codes: [301, 302, 303, 307, 308]
+    # WMTS REST templates, ResourceURL syntax. Replaces the defaults, [] to disable
+    # wmts_rest_templates:
+    #   - "/gwc/service/wmts/rest/{Layer}/{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}"
   datapi:
     download_formats:
       vector:

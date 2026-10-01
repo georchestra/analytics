@@ -23,6 +23,7 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
 
         Currently supports:
         - OGC WxS services (WMS, WFS, WCS, WMTS, CSW)
+        - WMTS RESTful encoding
         -
         TODO:
         - OGCAPI feature
@@ -88,6 +89,11 @@ class GeoserverLogProcessor(OgcserverLogProcessor):
         This function tries to extract the workspace from the path.
         """
         path = self.get_path_without_app_path(request_path)
+        # GWC paths (KVP or REST, whatever the configured WMTS REST templates), optionally prefixed by a workspace.
+        # Checked first, so that path segments after /gwc/ (e.g. "service" or "rest") are not taken as a workspace
+        matches = re.search(r"^(?:/([^/]+))?/gwc(/|$)", path)
+        if matches:
+            return matches[1] or ""
         # Integrated GWC paths
         regexes = [
             r".*\/(.*)\/gwc\/service\/(ows|wms|wfs|wcs|wmts)",  # GWC paths

@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from georchestra_analytics_cli.access_logs.app_processors.ogcserver import OgcserverLogProcessor
 from georchestra_analytics_cli.config import load_config_from
 
@@ -71,3 +73,84 @@ def test_collect_information_with_download():
         "service": "WFS", "request": "getfeature", "outputformat": "excel", "download_format": "Excel", "is_download": True, 'tags': ['ogc']
     }
 
+
+def test_parse_wmts_rest_path():
+    lp = OgcserverLogProcessor(app_path="ogc")
+    # GeoServer / GeoWebCache templates
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/wmtscapabilities.xml") == {
+        "service": "WMTS", "version": "1.0.0", "request": "getcapabilities"
+    }
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp%3astates/population/epsg%3a4326/epsg%3a4326%3a3/2/5") == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "layer": "topp:states", "style": "population",
+        "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3", "tilerow": "2", "tilecol": "5"
+    }
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/2/5") == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "layer": "topp:states",
+        "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3", "tilerow": "2", "tilecol": "5"
+    }
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp:states/population/epsg:4326/epsg:4326:3/2/5/120/44") == {
+        "service": "WMTS", "version": "1.0.0", "request": "getfeatureinfo", "layer": "topp:states", "style": "population",
+        "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3", "tilerow": "2", "tilecol": "5", "j": "120", "i": "44"
+    }
+    # Standalone GeoWebCache
+    assert lp.parse_wmts_rest_path("/geowebcache/service/wmts/rest/raster:ortho2014/default/epsg:3857/epsg:3857:12/1435/2105") == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "layer": "raster:ortho2014", "style": "default",
+        "tilematrixset": "epsg:3857", "tilematrix": "epsg:3857:12", "tilerow": "1435", "tilecol": "2105"
+    }
+    # Not WMTS REST
+    assert lp.parse_wmts_rest_path("/ogc/gwc/rest/wmts/topp:states/epsg:4326/epsg:4326:3/2/5") == {}  # GWC admin API
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts") == {}
+    assert lp.parse_wmts_rest_path("/ogc/gwc/rest/layers") == {}
+
+def test_is_relevant_wmts_rest():
+    lp = OgcserverLogProcessor(app_path="ogc")
+    assert lp.is_relevant("/ogc/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/2/5", "format=image/png") == True
+    assert lp.is_relevant("/ogc/gwc/rest/layers", "") == False
+
+def test_collect_information_wmts_rest():
+    lp = OgcserverLogProcessor(app_path="ogc")
+    assert lp.collect_information_from_url("/ogc/gwc/service/wmts/rest/topp:states/epsg:4326/EPSG:4326:3/2/5?format=image/png") == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "layers": "topp:states", "format": "image/png",
+        "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3", "tilerow": "2", "tilecol": "5", "tags": ["ogc"]
+    }
+
+def test_compile_wmts_rest_template():
+    regex = OgcserverLogProcessor.compile_wmts_rest_template(
+        "https://example.org/geoserver/gwc/service/wmts/rest/ws:layer/{style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}?format=image/png")
+    assert regex.match("/geoserver/gwc/service/wmts/rest/ws:layer/s/epsg:4326/epsg:4326:3/1/7").groupdict() == {
+        "style": "s", "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3", "tilerow": "1", "tilecol": "7"}
+    # TileRow and TileCol must be integers
+    assert regex.match("/geoserver/gwc/service/wmts/rest/ws:layer/s/epsg:4326/epsg:4326:3/a/7") is None
+    with pytest.raises(ValueError):
+        OgcserverLogProcessor.compile_wmts_rest_template("/wmts/{1layer}/{TileRow}/{TileCol}")
+    with pytest.raises(ValueError):
+        OgcserverLogProcessor.compile_wmts_rest_template("/wmts/{Layer}/{Layer}/{TileRow}/{TileCol}")
+
+def test_wmts_rest_templates_from_config():
+    lp = OgcserverLogProcessor(app_path="ogc", config={"wmts_rest_templates": [
+        "/gwc/service/wmts/rest/WMTSCapabilities.xml",
+        "/gwc/service/wmts/rest/{Layer}/{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}",
+        # Dimension in the path
+        "/gwc/service/wmts/rest/{Layer}/{Style}/{TileMatrixSet}/{Time}/{TileMatrix}/{TileRow}/{TileCol}",
+    ]})
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/wmtscapabilities.xml") == {
+        "service": "WMTS", "version": "1.0.0", "request": "getcapabilities"}
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp:states/population/epsg:4326/epsg:4326:3/1/7") == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "layer": "topp:states", "style": "population",
+        "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3", "tilerow": "1", "tilecol": "7"}
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp:states/population/epsg:4326/2020/epsg:4326:3/1/7") == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "layer": "topp:states", "style": "population",
+        "tilematrixset": "epsg:4326", "time": "2020", "tilematrix": "epsg:4326:3", "tilerow": "1", "tilecol": "7"}
+    # The default templates are replaced, not extended: no template without style anymore
+    assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/1/7") == {}
+    assert lp.is_relevant("/ogc/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/1/7", "") == False
+
+def test_wmts_rest_templates_disabled_from_config():
+    for templates in ([], None):
+        lp = OgcserverLogProcessor(app_path="ogc", config={"wmts_rest_templates": templates})
+        assert lp.parse_wmts_rest_path("/ogc/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/1/7") == {}
+
+def test_ignored_status_codes():
+    assert OgcserverLogProcessor().ignored_status_codes == [301, 302, 303, 307, 308]
+    assert OgcserverLogProcessor(config={"ignored_status_codes": [404]}).ignored_status_codes == [404]
+    assert OgcserverLogProcessor(config={"ignored_status_codes": None}).ignored_status_codes == []

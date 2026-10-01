@@ -84,3 +84,49 @@ def test_geoserver_log_processor_is_download():
     url_params = {'service': 'WFS', 'version': '1.1.0', 'request': 'GetFeature', 'typename': 'topp:states', 'outputformat': 'excel'}
     assert lp._infer_is_download(req_path, url_params) == (True, 'Excel')
     assert lp.collect_information(req_path, url_params).get('download_format') == 'Excel'
+
+def test_get_workspace_from_path_wmts_rest():
+    lp = GeoserverLogProcessor()
+    assert lp.get_workspace_from_path('/geoserver/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/2/5') == ''
+    assert lp.get_workspace_from_path('/geoserver/topp/gwc/service/wmts/rest/states/epsg:4326/epsg:4326:3/2/5') == 'topp'
+
+
+def test_geoserver_log_processor_wmts_rest():
+    lp = GeoserverLogProcessor()
+    assert lp.is_relevant("/geoserver/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/2/5", "format=image/png") == True
+    # GWC admin REST API, not a WMTS endpoint
+    assert lp.is_relevant("/geoserver/gwc/rest/wmts/topp:states/epsg:4326/epsg:4326:3/2/5", "format=image/png") == False
+
+    assert lp.collect_information(
+        "/geoserver/gwc/service/wmts/rest/topp%3astates/population/epsg%3a4326/epsg%3a4326%3a3/2/5",
+        {"format": "image/png"}) == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "workspaces": "topp", "layers": "states",
+        "style": "population", "format": "image/png", "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3",
+        "tilerow": "2", "tilecol": "5", "tags": ["ogc"]}
+
+    assert lp.is_relevant("/geoserver/gwc/service/wmts/rest/wmtscapabilities.xml", "") == True
+    assert lp.collect_information(
+        "/geoserver/topp/gwc/service/wmts/rest/states/epsg:4326/epsg:4326:3/2/5/120/44",
+        {"format": "image/png", "infoformat": "application/json"}) == {
+        "service": "WMTS", "version": "1.0.0", "request": "getfeatureinfo", "workspaces": "topp", "layers": "states",
+        "format": "image/png", "infoformat": "application/json", "tilematrixset": "epsg:4326",
+        "tilematrix": "epsg:4326:3", "tilerow": "2", "tilecol": "5", "i": "44", "j": "120", "tags": ["ogc"]}
+
+
+def test_get_workspace_from_path_gwc_kvp():
+    lp = GeoserverLogProcessor()
+    # "service" must not be taken as the workspace
+    assert lp.get_workspace_from_path('/geoserver/gwc/service/wmts') == ''
+
+
+def test_wmts_rest_templates_from_config_with_full_resource_url():
+    # ResourceURL copied from the capabilities, including the host and the app path
+    lp = GeoserverLogProcessor(app_path="geoserver", config={"wmts_rest_templates": [
+        "https://example.org/geoserver/gwc/service/wmts/rest/{Layer}/{style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}?format=image/png",
+    ]})
+    req_path = "/geoserver/gwc/service/wmts/rest/topp:states/population/epsg:4326/epsg:4326:3/1/7"
+    assert lp.is_relevant(req_path, "format=image/png") == True
+    assert lp.collect_information(req_path, {"format": "image/png"}) == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "workspaces": "topp", "layers": "states",
+        "style": "population", "format": "image/png", "tilematrixset": "epsg:4326", "tilematrix": "epsg:4326:3",
+        "tilerow": "1", "tilecol": "7", "tags": ["ogc"]}

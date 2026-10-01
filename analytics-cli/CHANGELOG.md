@@ -3,7 +3,9 @@
 
 # Unreleased
 
-* WMTS RESTful encoding support (GeoServer/GeoWebCache and MapProxy templates): tiles, feature info and capabilities requests are now tracked like their KVP counterpart
+* WMTS RESTful encoding support (GeoServer/GeoWebCache templates): tiles, feature info and capabilities requests are now tracked like their KVP counterpart
+* WMTS REST templates are configurable per app processor (`wmts_rest_templates`), using the ResourceURL syntax of the WMTS capabilities
+* OGC requests answered with a redirection (301, 302, 303, 307, 308) are no longer counted in the OGC views, since the target request is counted too. Configurable per app processor (`ignored_status_codes`)
 * use psycopg (v3) instead of psycopg2: SQLAlchemy 2.1 made it the default driver for `postgresql://` URLs
 * buffer2db: errors are now logged with their traceback and make the command exit with a non-zero code
 
