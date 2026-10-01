@@ -60,7 +60,7 @@ logging:
   accesslog:
     enabled: true
     info:
-      - .*/(?:ows|ogc|wms|wfs|wcs|wps)(?:/.*|\?.*)?$
+      - .*/(?:ows|ogc|wms|wfs|wcs|wps|wmts)(?:/.*|\?.*)?$
       - .*/ogcapi/.*$
 ```
 

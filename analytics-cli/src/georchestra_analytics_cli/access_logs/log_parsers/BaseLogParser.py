@@ -84,6 +84,7 @@ class BaseLogParser(AbstractLogParser):
             )
             if not (
                 lp
+                and log_dict.get("status_code") not in lp.ignored_status_codes
                 and lp.is_relevant(
                     log_dict.get("request_path"),
                     log_dict.get("request_query_string", ""),
