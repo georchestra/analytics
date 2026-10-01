@@ -1,6 +1,12 @@
 
 # Changelog
 
+# Unreleased
+
+* WMTS RESTful encoding support (GeoServer/GeoWebCache and MapProxy templates): tiles, feature info and capabilities requests are now tracked like their KVP counterpart
+* use psycopg (v3) instead of psycopg2: SQLAlchemy 2.1 made it the default driver for `postgresql://` URLs
+* buffer2db: errors are now logged with their traceback and make the command exit with a non-zero code
+
 # version 2.1.0
 
 * adding config/analytics_cli.yaml into python package by @jeanmi151 in https://github.com/georchestra/analytics/pull/24

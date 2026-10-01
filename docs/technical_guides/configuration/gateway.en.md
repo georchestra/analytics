@@ -20,7 +20,7 @@ logging:
     enabled: true
     # URLs to log at INFO level
     info:
-      - ".*/(ows|ogc|wms|wfs|wcs|wps)(/.*|\?.*)?$"
+      - ".*/(ows|ogc|wms|wfs|wcs|wps|wmts)(/.*|\?.*)?$"
 ```
 
 With the above configuration, the access logs will be enabled and will only ouput on `info` level (the default) the
