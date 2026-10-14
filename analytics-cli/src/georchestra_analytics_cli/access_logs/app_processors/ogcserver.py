@@ -28,12 +28,19 @@ class OgcserverLogProcessor(AbstractLogProcessor):
         re.compile("^.*/collections/.+", re.IGNORECASE),
     ]
 
+    # Redirections would be counted twice (the target request is logged too), configurable with the
+    # ignored_status_codes key
+    ignored_status_codes = [301, 302, 303, 307, 308]
+
     def __init__(
         self, app_path: str = "", app_id: str = "", config: dict[str, Any] = {}
     ):
         self.app_path = app_path if app_path else self.app_path
         self.app_id = app_id if app_id else self.app_path
         self.config = config
+        self.ignored_status_codes = (
+            self.config.get("ignored_status_codes", self.ignored_status_codes) or []
+        )
 
     def is_relevant(self, request_path: str, query_string: str) -> bool:
         """

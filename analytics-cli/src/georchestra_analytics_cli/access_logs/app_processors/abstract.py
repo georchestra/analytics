@@ -7,6 +7,8 @@ from typing import Any
 
 
 class AbstractLogProcessor(ABC):
+    # Requests with these HTTP status codes are not processed, as if they were not relevant
+    ignored_status_codes: list[int] = []
 
     @abstractmethod
     def __init__(

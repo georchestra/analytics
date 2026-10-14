@@ -155,3 +155,24 @@ def test_parse_regex_multipledn():
     }
 
     assert log_parser.parse(record) == expected_parsed_record
+
+
+
+def test_parse_with_app_processor_ignored_status_codes():
+    log_parser = RegexLogParser(load_config_from(config_file))
+    log_dict = {"app_id": "geoserver", "app_name": "geoserver", "app_path": "/geoserver/",
+                "request_path": "/geoserver/wms", "request_query_string": "service=wms&request=getmap&layers=ws:layer",
+                "request_details": {"service": "wms", "request": "getmap", "layers": "ws:layer"}}
+
+    # 200, 304 (served from the client cache) and errors are processed as OGC requests
+    for status in [200, 304, 404]:
+        assert log_parser.parse_with_app_processor({**log_dict, "status_code": status})["tags"] == ["ogc"]
+    # Redirections are not processed, so not counted as OGC requests
+    for status in [301, 302, 307, 308]:
+        assert log_parser.parse_with_app_processor({**log_dict, "status_code": status}) is None
+
+    # Overridden in the config
+    log_parser.app_processors_config["geoserver"] = {"ignored_status_codes": [404]}
+    log_parser.app_processors = {}
+    assert log_parser.parse_with_app_processor({**log_dict, "status_code": 301})["tags"] == ["ogc"]
+    assert log_parser.parse_with_app_processor({**log_dict, "status_code": 404}) is None

@@ -101,8 +101,11 @@ def buffer2db(cron: str | None):
             )
 
             time.sleep(sleep_seconds)
-    except Exception:
+    except KeyboardInterrupt:
         module_logger.info("Interrupted stopping buffer2db")
+    except Exception:
+        module_logger.exception("buffer2db failed")
+        raise
 
 
 @cli.command()

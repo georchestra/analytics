@@ -71,3 +71,7 @@ def test_collect_information_with_download():
         "service": "WFS", "request": "getfeature", "outputformat": "excel", "download_format": "Excel", "is_download": True, 'tags': ['ogc']
     }
 
+def test_ignored_status_codes():
+    assert OgcserverLogProcessor().ignored_status_codes == [301, 302, 303, 307, 308]
+    assert OgcserverLogProcessor(config={"ignored_status_codes": [404]}).ignored_status_codes == [404]
+    assert OgcserverLogProcessor(config={"ignored_status_codes": None}).ignored_status_codes == []
