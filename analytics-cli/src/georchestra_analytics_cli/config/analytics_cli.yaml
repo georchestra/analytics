@@ -18,6 +18,8 @@ timezone: "Europe/Paris"
 #   "/catalog/": "geonetwork"
 #
 # But we're not declaring the geoserver path, because it already corresponds to the geoserver app name.
+# A standalone GeoWebCache is processed like GeoServer (same WMTS services, without the /gwc prefix):
+#   "/geowebcache/": geoserver   # OpenTelemetry logs
 #
 apps_mapping: { }
 

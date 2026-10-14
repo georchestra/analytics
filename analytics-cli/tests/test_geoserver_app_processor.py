@@ -210,3 +210,17 @@ def test_wmts_rest_templates_disabled_from_config():
     for templates in ([], None):
         lp = GeoserverLogProcessor(app_path="geoserver", config={"wmts_rest_templates": templates})
         assert lp.parse_wmts_rest_path("/geoserver/gwc/service/wmts/rest/topp:states/epsg:4326/epsg:4326:3/1/7") == {}
+
+
+
+@pytest.mark.parametrize("app_path", ["geowebcache", "/geowebcache/"])  # depends on the log parser
+def test_standalone_geowebcache(app_path):
+    # Standalone GeoWebCache, mapped to the geoserver app processor (apps_mapping)
+    lp = GeoserverLogProcessor(app_path=app_path)
+    assert lp.is_relevant("/geowebcache/service/wmts/rest/wmtscapabilities.xml", "") == True
+    assert lp.collect_information(
+        "/geowebcache/service/wmts/rest/raster:ortho2014/default/epsg:3857/epsg:3857:12/1435/2105",
+        {"format": "image/jpeg"}) == {
+        "service": "WMTS", "version": "1.0.0", "request": "gettile", "workspaces": "raster", "layers": "ortho2014",
+        "style": "default", "format": "image/jpeg", "tilematrixset": "epsg:3857", "tilematrix": "epsg:3857:12",
+        "tilerow": "1435", "tilecol": "2105", "tags": ["ogc"]}
