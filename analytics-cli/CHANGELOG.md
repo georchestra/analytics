@@ -1,7 +1,7 @@
 
 # Changelog
 
-# Unreleased
+# version 2.1.1
 
 * WMTS RESTful encoding support (GeoServer/GeoWebCache templates): tiles, feature info and capabilities requests are now tracked like their KVP counterpart
 * WMTS REST templates are configurable in the geoserver app processor config (`wmts_rest_templates`), using the ResourceURL syntax of the WMTS capabilities
