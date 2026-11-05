@@ -1,7 +1,7 @@
 
 volumes:
   timescaledb_home_data:
-  timescaledb_home_log
+  timescaledb_home_log:
   
 services: 
 
