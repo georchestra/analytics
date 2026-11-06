@@ -1,0 +1,71 @@
+name: build-analytics-cli.yml
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - '[1-9]+.[0-9]+.x'
+    tags:
+      - '*'
+    paths:
+      - '.github/workflows/build-analytics-cli.yml'
+      - 'analytics-cli/**'
+
+jobs:
+  test-analytics-cli:
+    runs-on: ubuntu-latest
+    name: Run analytics-cli tests
+    defaults:
+      run:
+        working-directory: analytics-cli
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build analytics-cli test image
+        run: ./docker_build.sh --mode=dev --version=test
+
+      - name: Run tests in docker image
+        run: |
+          docker run --rm --entrypoint sh georchestra/analytics-cli:test -c \
+            "pip install pytest pytest-cov && pytest tests"
+
+  build-analytics-cli:
+    runs-on: ubuntu-latest
+    name: Build & push analytics-cli
+    needs: test-analytics-cli
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Getting image tag
+        id: version
+        run: echo "VERSION=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build analytics-cli
+        working-directory: analytics-cli
+        run: ./docker_build.sh --mode=release --version=latest
+
+      - name: "Log in to docker.io"
+        if: github.repository == 'georchestra/analytics'
+        uses: docker/login-action@v3
+        with:
+          username: '${{ secrets.DOCKER_HUB_USERNAME }}'
+          password: '${{ secrets.DOCKER_HUB_PASSWORD }}'
+
+      - name: Push analytics-cli
+        if: github.repository == 'georchestra/analytics'
+        run: docker push georchestra/analytics-cli:latest
+
+      - name: Push release
+        if: github.repository == 'georchestra/analytics' && (endsWith(github.ref, '.x') || github.ref_type == 'tag')
+        run: |
+          docker tag georchestra/analytics-cli:latest georchestra/analytics-cli:${{ steps.version.outputs.VERSION }}
+          docker push georchestra/analytics-cli:${{ steps.version.outputs.VERSION }}
