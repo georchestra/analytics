@@ -59,3 +59,31 @@ def test_config_keys_blacklist_empty():
 def test_config_timezone():
     conf = load_config_from(config_multiple_dn)
     assert conf.get_timezone() == "Indian/Kerguelen"
+
+
+def test_config_timescaledb_policy_defaults():
+    conf = load_config_from(config_file)
+
+    assert conf.get_timescaledb_chunk_interval() == "7 days"
+    assert conf.get_timescaledb_retention_drop_after() == "3 years"
+    assert conf.get_timescaledb_retention_schedule_interval() == "1 week"
+
+
+def test_config_timescaledb_policy_overrides():
+    conf = load_config_from(config_file)
+    conf.config["database"]["timescaledb"] = {
+        "chunk_interval": "1 day",
+        "retention": {
+            "drop_after": "90 days",
+            "schedule_interval": "12 hours",
+        },
+    }
+
+    assert conf.get_timescaledb_chunk_interval() == "1 day"
+    assert conf.get_timescaledb_retention_drop_after() == "90 days"
+    assert conf.get_timescaledb_retention_schedule_interval() == "12 hours"
+
+
+def test_config_ogc_aggregation_batch_size():
+    conf = load_config_from(config_file)
+    assert conf.get_ogc_aggregation_batch_size() == 100
