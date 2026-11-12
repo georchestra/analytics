@@ -1,0 +1,74 @@
+{{- $cli := .Values.cli -}}
+{{- $migrations := $cli.migrations -}}
+{{- if and $cli.enabled $migrations.enabled -}}
+{{- $jobBase := include "analytics.fullname" . | trunc 43 | trimSuffix "-" -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-db-migrate-%d" $jobBase .Release.Revision }}
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database-migration
+spec:
+  backoffLimit: {{ $migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ $migrations.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "analytics.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database-migration
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Never
+      containers:
+        - name: database-migration
+          image: {{ $cli.image }}
+          imagePullPolicy: {{ $cli.imagePullPolicy }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              {{- if $migrations.existingDatabase.enabled }}
+              analytics-cli db bootstrap-existing --revision {{ $migrations.existingDatabase.baselineRevision | quote }}
+              {{- end }}
+              analytics-cli db upgrade --revision {{ $migrations.targetRevision | quote }}
+              analytics-cli db sync-policies
+          env:
+            - name: TSDB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: host
+            - name: TSDB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: port
+            - name: TSDB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: dbname
+            - name: TSDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: user
+            - name: TSDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                  key: password
+            - name: GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE
+              value: /etc/georchestra/analytics/cli.yaml
+          volumeMounts:
+            - name: cli-config
+              subPath: cli.yaml
+              mountPath: /etc/georchestra/analytics/cli.yaml
+      volumes:
+        - name: cli-config
+          configMap:
+            name: {{ include "analytics.fullname" . }}-cli-config
+{{- end }}

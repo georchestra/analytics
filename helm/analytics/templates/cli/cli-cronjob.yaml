@@ -13,6 +13,7 @@ spec:
     spec:
       template:
         spec:
+          {{- include "analytics.revisionGate" . | nindent 10 }}
           {{- with .Values.nodeSelector }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}
