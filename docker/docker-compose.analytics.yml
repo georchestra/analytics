@@ -1,7 +1,6 @@
 
 volumes:
-  timescaledb_home_data:
-  timescaledb_home_log:
+  timescaledb_data:
   
 services: 
 
@@ -28,21 +27,47 @@ services:
 #      - "0.0.0.0:4318:4318"   # OTLP http/protobuf receiver
 #      - 8686:8686
     volumes:
-      - ./config/analytics/vector.yml:/etc/vector/vector.yaml:ro
+      - ../config/analytics/vector.yml:/etc/vector/vector.yaml:ro
     env_file:
       - .envs-analytics
+    depends_on:
+      analytics-migrate:
+        condition: service_completed_successfully
+    restart: always
+
+  analytics-migrate:
+    build:
+      context: ../analytics-cli
+      target: dev
+    image: georchestra/analytics-cli:${ANALYTICS_CLI_VERSION:-2.2.0}
+    command: ["analytics-cli", "--config-file", "/etc/georchestra/analytics/cli.yaml", "db", "upgrade"]
+    env_file:
+      - .envs-analytics
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    volumes:
+      - ../analytics-cli/config/analytics_cli.yaml:/etc/georchestra/analytics/cli.yaml:ro
+    restart: "no"
+
+  analytics-cli:
+    image: georchestra/analytics-cli:${ANALYTICS_CLI_VERSION:-2.2.0}
+    command: ["analytics-cli", "--config-file", "/etc/georchestra/analytics/cli.yaml", "buffer2db", "--cron", "5 0 * * *"]
+    env_file:
+      - .envs-analytics
+    depends_on:
+      analytics-migrate:
+        condition: service_completed_successfully
+      vector:
+        condition: service_healthy
+    volumes:
+      - ../analytics-cli/config/analytics_cli.yaml:/etc/georchestra/analytics/cli.yaml:ro
     restart: always
 
   timescaledb:
-    image: timescale/timescaledb-ha:pg18
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tsdb -d analytics"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+    image: timescale/timescaledb:2.30.2-pg18
     ports:
-      - 5433:5432
+      - "${TSDB_PUBLISHED_PORT:-5433}:5432"
     env_file:
       - .envs-analytics
 #    environment:
@@ -50,19 +75,10 @@ services:
 #      - POSTGRES_USER=tsdb
 #      - POSTGRES_PASSWORD=password
     volumes:
-      - timescaledb_home_data:/home/postgres/pgdata
-      - timescaledb_home_log:/home/postgres/pg_log
-      - ./config/analytics/db.entrypoints.d:/docker-entrypoint-initdb.d/:ro
-    restart: always
-
-  analytics-cli:
-    image: georchestra/analytics-cli:2.1.0
-    volumes:
-      - ./config:/etc/georchestra
-    env_file:
-       - .envs-analytics
-    command: ["/bin/bash", "-c", 'analytics-cli --config-file /etc/georchestra/analytics/config/config.yaml buffer2db --cron "5 0 * * *"']
-    depends_on:
-      - vector
-      - timescaledb
+      - timescaledb_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     restart: always

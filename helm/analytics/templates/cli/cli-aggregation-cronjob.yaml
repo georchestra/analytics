@@ -1,0 +1,74 @@
+{{- $cli := .Values.cli -}}
+{{- $aggregation := $cli.aggregation -}}
+{{- if and $cli.enabled $aggregation.enabled -}}
+{{- $cronjobBase := include "analytics.fullname" . | trunc 34 | trimSuffix "-" -}}
+{{- $cronjobName := printf "%s-cli-aggregate-ogc" $cronjobBase -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $cronjobName }}
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $cronjobName }}
+spec:
+  concurrencyPolicy: Forbid
+  schedule: {{ $aggregation.schedule | quote }}
+  successfulJobsHistoryLimit: {{ $aggregation.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ $aggregation.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ $aggregation.backoffLimit }}
+      template:
+        spec:
+          {{- include "analytics.revisionGate" . | nindent 10 }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: analytics-cli-aggregate-ogc
+            image: {{ $cli.image }}
+            imagePullPolicy: {{ $cli.imagePullPolicy }}
+            command: ["analytics-cli"]
+            args:
+              - "aggregate-ogc"
+              - "--batch-size"
+              - {{ $aggregation.batchSize | quote }}
+            env:
+              - name: TSDB_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: host
+              - name: TSDB_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: port
+              - name: TSDB_NAME
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: dbname
+              - name: TSDB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: user
+              - name: TSDB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
+                    key: password
+              - name: GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE
+                value: /etc/georchestra/analytics/cli.yaml
+            volumeMounts:
+            - name: cli-config
+              subPath: cli.yaml
+              mountPath: /etc/georchestra/analytics/cli.yaml
+          restartPolicy: Never
+          volumes:
+          - name: cli-config
+            configMap:
+              name: {{ include "analytics.fullname" . }}-cli-config
+{{- end }}

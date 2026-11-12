@@ -3,6 +3,8 @@ title: "Analytics CLI config file"
 performance:
   # Publish in DB by batches
   batch_size: 10000
+  # Maximum queued hourly buckets recomputed in one transaction.
+  ogc_aggregation_batch_size: 100
 
 # It is best to set this to your local timezone so that any time-related handling have the best chance to be handled  with proper time offsets.
 timezone: "Europe/Paris"
@@ -49,6 +51,12 @@ database:
   #  schema: analytics
   username: "tsdb"
   password: !ENV "${GOA_DB_PASSWORD:secret}"
+  timescaledb:
+    # Applied to analytics.access_logs by `analytics-cli db sync-policies`.
+    chunk_interval: "7 days"
+    retention:
+      drop_after: "3 years"
+      schedule_interval: "1 week"
 
 # Logs parsers config. If running over opentelemetry logs, this is the one you will want to have properly configured.
 # If running on CLF-like log files, you will rely on the text_message parser below.

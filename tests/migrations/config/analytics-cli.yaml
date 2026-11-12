@@ -1,0 +1,27 @@
+database:
+  drivername: postgresql+psycopg
+  host: 127.0.0.1
+  port: !ENV "${MIGRATION_TEST_DB_PORT:55435}"
+  database: analytics
+  username: tsdb
+  password: !ENV "${MIGRATION_TEST_DB_PASSWORD:migration-test}"
+
+metrics:
+  enabled: false
+
+logging:
+  version: 1
+  disable_existing_loggers: false
+  root:
+    handlers: [console]
+    level: INFO
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: default
+  formatters:
+    default:
+      format: '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'
+  loggers:
+    georchestra_analytics_cli:
+      level: INFO
