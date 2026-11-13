@@ -18,8 +18,8 @@ timezone: "Europe/Paris"
 #   "/catalog/": "geonetwork"
 #
 # But we're not declaring the geoserver path, because it already corresponds to the geoserver app name.
-# A standalone GeoWebCache is processed like GeoServer (same WMTS services, without the /gwc prefix):
-#   "/geowebcache/": geoserver   # OpenTelemetry logs
+# A standalone GeoWebCache served elsewhere than /geowebcache/ has to be mapped to the geowebcache app name:
+#   "/gwc/": geowebcache   # OpenTelemetry logs
 #
 apps_mapping: { }
 
@@ -91,6 +91,12 @@ app_processors:
     # WMTS REST templates, ResourceURL syntax. Replaces the defaults, [] to disable
     # wmts_rest_templates:
     #   - "/gwc/service/wmts/rest/{Layer}/{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}"
+  # Standalone GeoWebCache: same processor and options as geoserver (configured separately)
+  geowebcache:
+    infer_is_tiled: true
+    # ignored_status_codes: [301, 302, 303, 307, 308]
+    # wmts_rest_templates:
+    #   - "/service/wmts/rest/{Layer}/{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}"
   datapi:
     download_formats:
       vector:

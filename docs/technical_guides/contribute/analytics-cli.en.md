@@ -47,6 +47,10 @@ apps_mapping:
 
 In the geoserver case, the mapping is implicit. In the second case, it is explicit.
 
+A standalone GeoWebCache serves the same WMTS services as the one integrated in GeoServer, without the `/gwc` prefix.
+It has its own `geowebcache` app processor, which processes requests like GeoServer but records them under the
+`geowebcache` app name. 
+
 There is another possible situation, where collecting log records from apps served _outside_ of geOrchestra and at the 
 root path. For instance a mapserver instance, served on a given subdomain, at the root of the server (let's say for the 
 sake of this discussion at https://ms.georchestra.org/).
@@ -88,4 +92,3 @@ needs to provide the mapping between the path and the module's name. Then, it sh
 matching log records are met.
 
 For now, the code still needs to be included/compiled in the analytics-cli package. There is no plugin support as of now.
-
