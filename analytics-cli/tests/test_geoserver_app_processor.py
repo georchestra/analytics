@@ -1,6 +1,7 @@
 import pytest
 
 from georchestra_analytics_cli.access_logs.app_processors.geoserver import GeoserverLogProcessor
+from georchestra_analytics_cli.access_logs.app_processors.geowebcache import GeowebcacheLogProcessor
 
 
 def test_is_relevant():
@@ -215,8 +216,8 @@ def test_wmts_rest_templates_disabled_from_config():
 
 @pytest.mark.parametrize("app_path", ["geowebcache", "/geowebcache/"])  # depends on the log parser
 def test_standalone_geowebcache(app_path):
-    # Standalone GeoWebCache, mapped to the geoserver app processor (apps_mapping)
-    lp = GeoserverLogProcessor(app_path=app_path)
+    # Standalone GeoWebCache, own app processor reusing the GeoServer one
+    lp = GeowebcacheLogProcessor(app_path=app_path)
     assert lp.is_relevant("/geowebcache/service/wmts/rest/wmtscapabilities.xml", "") == True
     assert lp.collect_information(
         "/geowebcache/service/wmts/rest/raster:ortho2014/default/epsg:3857/epsg:3857:12/1435/2105",
@@ -224,3 +225,15 @@ def test_standalone_geowebcache(app_path):
         "service": "WMTS", "version": "1.0.0", "request": "gettile", "workspaces": "raster", "layers": "ortho2014",
         "style": "default", "format": "image/jpeg", "tilematrixset": "epsg:3857", "tilematrix": "epsg:3857:12",
         "tilerow": "1435", "tilecol": "2105", "tags": ["ogc"]}
+
+
+def test_standalone_geowebcache_app_processor_loading():
+    # /geowebcache/ is recorded as the geowebcache app (not geoserver), with its own processor config
+    from georchestra_analytics_cli.access_logs.log_parsers.BaseLogParser import BaseLogParser
+    from georchestra_analytics_cli.config import get_config
+
+    conf = get_config()
+    assert conf.what_app_is_it("/geowebcache/") == "geowebcache"
+    lp = BaseLogParser(conf)._get_app_processor("geowebcache", "/geowebcache/", "/geowebcache/")
+    assert type(lp) is GeowebcacheLogProcessor
+    assert lp.config == conf.get_app_processors_config()["geowebcache"]
