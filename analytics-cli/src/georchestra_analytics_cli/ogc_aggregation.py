@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from georchestra_analytics_cli.config import Config
 
 logger = logging.getLogger(__name__)
+MAX_AGGREGATION_ATTEMPTS = 3
 
 DIMENSION_COLUMNS = (
     "app_id",
@@ -36,6 +37,10 @@ DIMENSIONS = ", ".join(DIMENSION_COLUMNS)
 @dataclass(frozen=True)
 class AggregationResult:
     processed_buckets: int
+
+
+class OgcAggregationBatchError(RuntimeError):
+    """A failed batch whose retry metadata was stored durably."""
 
 
 def enqueue_ogc_buckets(
@@ -296,12 +301,16 @@ def aggregate_queued_ogc_buckets(
                         """
                         SELECT bucket_hourly
                         FROM analytics.ogc_aggregation_queue
-                        ORDER BY bucket_hourly
+                        WHERE attempts < :max_attempts
+                        ORDER BY attempts, bucket_hourly
                         FOR UPDATE SKIP LOCKED
                         LIMIT :batch_size
                     """
                     ),
-                    {"batch_size": size},
+                    {
+                        "batch_size": size,
+                        "max_attempts": MAX_AGGREGATION_ATTEMPTS,
+                    },
                 ).scalars()
             )
             if not claimed:
@@ -352,7 +361,10 @@ def aggregate_queued_ogc_buckets(
             _record_failure(engine, claimed, error)
         except Exception:
             logger.exception("Could not record OGC aggregation failure metadata")
-        raise
+            raise
+        if not claimed:
+            raise
+        raise OgcAggregationBatchError(str(error)) from error
     finally:
         engine.dispose()
 

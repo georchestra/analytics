@@ -229,6 +229,18 @@ rollup_case=$(psql_in "$name" -Atc "
 affected_day=$(printf '%s' "$rollup_case" | cut -d '|' -f 1)
 removed_hour=$(printf '%s' "$rollup_case" | cut -d '|' -f 2)
 queued_hour=$(printf '%s' "$rollup_case" | cut -d '|' -f 3)
+safe_hour=$(psql_in "$name" -Atc "
+    SELECT min(bucket_hourly)
+    FROM analytics.ogc_summary_hourly_store
+    WHERE time_bucket(INTERVAL '1 month', bucket_hourly, 'Europe/Paris')
+          <> time_bucket(
+              INTERVAL '1 month', '$affected_day'::timestamptz, 'Europe/Paris'
+          );
+")
+[ -n "$safe_hour" ] || {
+    echo "Fixture has no independent healthy bucket" >&2
+    exit 1
+}
 
 daily_before=$(psql_in "$name" -Atc "
     SELECT md5(COALESCE(string_agg(
@@ -255,14 +267,11 @@ psql_in "$name" -c "
     DELETE FROM analytics.ogc_summary_hourly_store
     WHERE bucket_hourly = '$removed_hour'::timestamptz;
     INSERT INTO analytics.ogc_aggregation_queue (bucket_hourly)
-    VALUES ('$queued_hour'::timestamptz)
+    VALUES ('$queued_hour'::timestamptz), ('$safe_hour'::timestamptz)
     ON CONFLICT (bucket_hourly) DO NOTHING;
 " >/dev/null
 
-if run_cli aggregate-ogc --batch-size 1 >/dev/null 2>&1; then
-    echo "Incomplete hourly history unexpectedly replaced a daily rollup" >&2
-    exit 1
-fi
+run_cli aggregate-ogc --batch-size 1 >/dev/null 2>&1
 
 daily_after=$(psql_in "$name" -Atc "
     SELECT md5(COALESCE(string_agg(
@@ -293,12 +302,17 @@ monthly_after=$(psql_in "$name" -Atc "
     exit 1
 }
 failure_recorded=$(psql_in "$name" -Atc "
-    SELECT attempts > 0 AND last_error LIKE 'refusing to rebuild%'
-    FROM analytics.ogc_aggregation_queue
-    WHERE bucket_hourly = '$queued_hour'::timestamptz;
+    SELECT
+        (SELECT attempts = 3 AND last_error LIKE 'refusing to rebuild%'
+         FROM analytics.ogc_aggregation_queue
+         WHERE bucket_hourly = '$queued_hour'::timestamptz) || '|' ||
+        NOT EXISTS (
+            SELECT 1 FROM analytics.ogc_aggregation_queue
+            WHERE bucket_hourly = '$safe_hour'::timestamptz
+        );
 ")
-[ "$failure_recorded" = "t" ] || {
-    echo "Unsafe rollup failure was not recorded on the queue bucket" >&2
+[ "$failure_recorded" = "true|true" ] || {
+    echo "Poison bucket was not quarantined independently: $failure_recorded" >&2
     exit 1
 }
 

@@ -29,7 +29,10 @@ from georchestra_analytics_cli.legacy_ogc import (
     enable_legacy_ogc,
     validate_legacy_ogc,
 )
-from georchestra_analytics_cli.ogc_aggregation import aggregate_queued_ogc_buckets
+from georchestra_analytics_cli.ogc_aggregation import (
+    OgcAggregationBatchError,
+    aggregate_queued_ogc_buckets,
+)
 from georchestra_analytics_cli.timescaledb import sync_timescaledb_policies
 from georchestra_analytics_cli.utils import (
     write_prometheus_metrics,
@@ -214,8 +217,18 @@ def fake2db(start: str = None, stop: str = None, last_n_hours: int = 1, rate: in
 
 def _drain_ogc_queue(batch_size: int | None = None) -> int:
     processed = 0
+    current_batch_size = batch_size
     while True:
-        result = aggregate_queued_ogc_buckets(conf, batch_size=batch_size)
+        try:
+            result = aggregate_queued_ogc_buckets(
+                conf, batch_size=current_batch_size
+            )
+        except OgcAggregationBatchError:
+            # Retry one bucket at a time. Healthy buckets from the failed batch
+            # can then complete while a repeatedly failing bucket reaches the
+            # durable quarantine threshold.
+            current_batch_size = 1
+            continue
         processed += result.processed_buckets
         if result.processed_buckets == 0:
             return processed

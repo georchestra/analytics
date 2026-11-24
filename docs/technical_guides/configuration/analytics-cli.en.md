@@ -55,7 +55,8 @@ The CLI relies on sub-commands:
     in the durable aggregation queue. Processing is transactional and idempotent;
     successfully processed queue entries are removed. The Helm chart schedules this
     command independently so pending work can be retried even when no new buffer
-    records arrive.
+    records arrive. After three failures, an individual bucket is quarantined in
+    the queue with its last error while other buckets continue processing.
 
     `analytics-cli --config-file /path/to/your/custom/config/file.yaml aggregate-ogc`
 

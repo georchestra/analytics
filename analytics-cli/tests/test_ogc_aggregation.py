@@ -94,7 +94,10 @@ def test_aggregate_recomputes_all_grains(monkeypatch):
     assert rollup.call_count == 2
     assert rollup.call_args_list[1].args[-2] == [daily_bucket]
     assert rollup.call_args_list[1].args[-1] == "America/Argentina/Buenos_Aires"
-    assert connection.execute.call_args_list[1].args[1] == {"batch_size": 5}
+    assert connection.execute.call_args_list[1].args[1] == {
+        "batch_size": 5,
+        "max_attempts": 3,
+    }
 
 
 def test_rollup_refuses_to_delete_history_when_source_is_incomplete():

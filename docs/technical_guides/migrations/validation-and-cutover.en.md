@@ -14,6 +14,13 @@ analytics-cli --config-file /path/to/analytics-cli.yaml legacy-ogc validate
 Cutover is refused when the durable aggregation queue is not empty or a legacy
 row is missing or different in the persistent store.
 
+A bucket that fails three times remains in `analytics.ogc_aggregation_queue`
+with its `attempts` and `last_error` values for operator inspection. It is then
+skipped so healthy buckets continue processing, but it still blocks cutover.
+After correcting the underlying data or configuration, reset `attempts` to zero
+for that specific bucket and run `aggregate-ogc` again. Do not delete the queue
+row merely to bypass validation.
+
 Revision `0003` keeps the established `ogc_summary*` names as compatibility
 views backed by the persistent stores. The former continuous aggregates are
 renamed with a `_legacy` suffix and remain available for comparison.

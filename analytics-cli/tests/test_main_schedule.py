@@ -71,3 +71,22 @@ def test_buffer2db_one_shot_still_reports_failure(monkeypatch):
 
     with pytest.raises(RuntimeError, match="permanent failure"):
         main.buffer2db.callback(None)
+
+
+def test_drain_ogc_queue_isolates_failed_batch(monkeypatch):
+    aggregate = Mock(
+        side_effect=[
+            main.OgcAggregationBatchError("poison bucket"),
+            Mock(processed_buckets=1),
+            Mock(processed_buckets=0),
+        ]
+    )
+    monkeypatch.setattr(main, "aggregate_queued_ogc_buckets", aggregate)
+    monkeypatch.setattr(main, "conf", _CronConfig())
+
+    assert main._drain_ogc_queue() == 1
+    assert [call.kwargs["batch_size"] for call in aggregate.call_args_list] == [
+        None,
+        1,
+        1,
+    ]
