@@ -85,6 +85,64 @@ case "$state" in
     *) echo "Unexpected cutover state: $state" >&2; exit 1 ;;
 esac
 
+# The public TimescaleDB jobs view exposes renamed continuous-aggregate view
+# names. Exercise the real lifecycle instead of relying on mocked job metadata.
+# Synthetic fixtures intentionally disable background jobs before dumping, so
+# restore the production-like scheduled state before exercising the command.
+psql_in "$name" -c "
+    SELECT alter_job(job_id, scheduled => true)
+    FROM timescaledb_information.jobs
+    WHERE hypertable_schema = 'analytics'
+      AND hypertable_name IN (
+          'ogc_summary_hourly_legacy',
+          'ogc_summary_daily_legacy',
+          'ogc_summary_monthly_legacy'
+      );
+" >/dev/null
+legacy_jobs=$(psql_in "$name" -Atc "
+    SELECT count(*)
+    FROM timescaledb_information.jobs
+    WHERE hypertable_schema = 'analytics'
+      AND hypertable_name IN (
+          'ogc_summary_hourly_legacy',
+          'ogc_summary_daily_legacy',
+          'ogc_summary_monthly_legacy'
+      )
+      AND scheduled;
+")
+[ "$legacy_jobs" = "5" ] || {
+    echo "Expected 5 scheduled legacy OGC jobs, found $legacy_jobs" >&2
+    exit 1
+}
+
+run_cli legacy-ogc disable
+disabled=$(psql_in "$name" -Atc "
+    SELECT
+        (SELECT count(*) FROM analytics.ogc_legacy_job_state) || '|' ||
+        (SELECT count(*)
+         FROM timescaledb_information.jobs
+         WHERE hypertable_schema = 'analytics'
+           AND hypertable_name LIKE 'ogc_summary_%_legacy'
+           AND scheduled);
+")
+[ "$disabled" = "5|0" ] || {
+    echo "Unexpected disabled legacy job state: $disabled" >&2
+    exit 1
+}
+
+run_cli legacy-ogc enable
+reenabled=$(psql_in "$name" -Atc "
+    SELECT count(*)
+    FROM timescaledb_information.jobs
+    WHERE hypertable_schema = 'analytics'
+      AND hypertable_name LIKE 'ogc_summary_%_legacy'
+      AND scheduled;
+")
+[ "$reenabled" = "5" ] || {
+    echo "Expected 5 re-enabled legacy OGC jobs, found $reenabled" >&2
+    exit 1
+}
+
 run_cli db downgrade --revision 0002
 restored=$(psql_in "$name" -Atc "
     SELECT count(*) FROM timescaledb_information.continuous_aggregates

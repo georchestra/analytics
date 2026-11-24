@@ -34,4 +34,25 @@ state=$(psql_in "$name" -Atc "
     exit 1
 }
 
+# During the Europe/Paris autumn transition, the repeated local hour maps to
+# two distinct timestamptz buckets and both remain inside the SQL prefilter.
+dst_fallback=$(psql_in "$name" -Atc "
+    WITH samples(ts) AS (
+        VALUES
+            ('2026-10-25 00:30:00+00'::timestamptz),
+            ('2026-10-25 01:30:00+00'::timestamptz)
+    ), bucketed AS (
+        SELECT
+            ts,
+            time_bucket(INTERVAL '1 hour', ts, 'Europe/Paris') AS bucket
+        FROM samples
+    )
+    SELECT count(DISTINCT bucket) || '|' || bool_and(ts >= bucket)
+    FROM bucketed;
+")
+[ "$dst_fallback" = "2|true" ] || {
+    echo "Unexpected Europe/Paris DST fallback bucketing: $dst_fallback" >&2
+    exit 1
+}
+
 echo "Fresh database upgrade to Alembic head OK."
