@@ -60,3 +60,34 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/* Block data producers until the Alembic migration hook reaches its target. */}}
+{{- define "analytics.revisionGate" -}}
+{{- if and .Values.cli.enabled .Values.cli.migrations.enabled }}
+initContainers:
+  - name: wait-for-database-revision
+    image: {{ .Values.cli.image }}
+    imagePullPolicy: {{ .Values.cli.imagePullPolicy }}
+    command: ["/bin/sh", "-ec"]
+    args:
+      - |
+        until analytics-cli db require-revision --revision {{ .Values.cli.migrations.targetRevision | quote }}; do
+          echo "Database migration is not ready; retrying in 2 seconds"
+          sleep 2
+        done
+    env:
+      {{- range $name, $key := dict "TSDB_HOST" "host" "TSDB_PORT" "port" "TSDB_NAME" "dbname" "TSDB_USER" "user" "TSDB_PASSWORD" "password" }}
+      - name: {{ $name }}
+        valueFrom:
+          secretKeyRef:
+            name: {{ $.Values.timescaledb.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" $)) | quote }}
+            key: {{ $key }}
+      {{- end }}
+      - name: GEORCHESTRA_ANALYTICS_CLI_CONFIG_FILE
+        value: /etc/georchestra/analytics/cli.yaml
+    volumeMounts:
+      - name: cli-config
+        subPath: cli.yaml
+        mountPath: /etc/georchestra/analytics/cli.yaml
+{{- end }}
+{{- end }}

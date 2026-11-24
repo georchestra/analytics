@@ -12,7 +12,7 @@ timescaledb:
   timezone: "Europe/Paris"
   replicaCount: 1
   imagePullPolicy: IfNotPresent
-  docker_image: timescale/timescaledb:2.26.3-pg17
+  docker_image: timescale/timescaledb:2.30.2-pg18
   auth:
     # existingSecret: will_replace_below_auth_settings
     database: analytics
@@ -129,6 +129,29 @@ vector:
 # Python CLI cronjob
 cli:
   enabled: true
+  # Run Alembic in a revision-scoped Job before relying on Vector or the CLI
+  # ingestion and aggregation CronJobs.
+  migrations:
+    enabled: true
+    targetRevision: "head"
+    backoffLimit: 6
+    activeDeadlineSeconds: 900
+    # Enable only when adopting Alembic on an existing installation. The CLI
+    # validates the 0001 relations and stamps only an unversioned database; it
+    # is a safe no-op after a revision has already been recorded.
+    existingDatabase:
+      enabled: false
+      baselineRevision: "0001"
+  # Independently drains and cleans the durable OGC aggregation queue. buffer2db
+  # also drains it after ingestion; this CronJob provides retries and processes
+  # buckets queued by file2db or fake2db.
+  aggregation:
+    enabled: true
+    schedule: "15 * * * *"
+    batchSize: 100
+    backoffLimit: 2
+    successfulJobsHistoryLimit: 1
+    failedJobsHistoryLimit: 3
   fakeRecords:
     # Enable this if you want to generate fake log records, instead of processing real ones.
     # Useful for dashboard development.
@@ -141,7 +164,9 @@ cli:
     # Max number of records per hour.
     maxRate: 50
   schedule: "0 * * * *"
-  image: georchestra/analytics-cli:2.0.0
+  # Publish this release image before deploying the chart. The current public
+  # upstream release is 2.1.1; this branch introduces 2.2.0.
+  image: georchestra/analytics-cli:2.2.0
   imagePullPolicy: IfNotPresent
   # Configure the CLI app
   config: |-

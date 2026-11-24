@@ -1,6 +1,14 @@
 
 # Changelog
 
+# version 2.2.0
+
+* manage the analytics schema and upgrades with Alembic
+* preserve OGC statistics in persistent hourly, daily and monthly stores
+* incrementally recompute affected OGC buckets using the configured timezone
+* provide validated cutover, rollback and optional legacy aggregate removal workflows
+* gate Helm data producers until the configured database revision is ready
+
 # version 2.1.1
 
 * WMTS RESTful encoding support (GeoServer/GeoWebCache templates): tiles, feature info and capabilities requests are now tracked like their KVP counterpart

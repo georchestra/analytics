@@ -55,14 +55,18 @@ spec:
                   name: {{ $webapp.existingSecret | default (printf "%s-timescaledb-connection-secret" (include "analytics.fullname" .)) | quote }}
                   key: password
           volumeMounts:
-            - mountPath: /home/postgres/pgdata
+            # PostgreSQL 18 images declare the parent directory as the volume so
+            # that version-specific data directories can be managed safely.
+            - mountPath: /var/lib/postgresql
               name: timescaledb-data
+            {{- if not (and $.Values.cli.enabled $.Values.cli.migrations.enabled) }}
             - mountPath: /docker-entrypoint-initdb.d/100_analytics_init.sql
               name: timescaledb-initscripts
               subPath: 100_analytics_init.sql
             - mountPath: /docker-entrypoint-initdb.d/101_analytics_ogc_views.sql
               name: timescaledb-initscripts
               subPath: 101_analytics_ogc_views.sql
+            {{- end }}
             {{- if $webapp.extraVolumeMounts }}
               {{- toYaml $webapp.extraVolumeMounts | nindent 10 }}
             {{- end }}
@@ -76,9 +80,11 @@ spec:
       - name: timescaledb-data
         persistentVolumeClaim:
           claimName: {{ include "analytics.fullname" . }}-timescaledb-data
+      {{- if not (and .Values.cli.enabled .Values.cli.migrations.enabled) }}
       - name: timescaledb-initscripts
         configMap:
           name: {{ include "analytics.fullname" . }}-timescaledb-initscripts
+      {{- end }}
       {{- if $webapp.extraVolumes }}
           {{- toYaml $webapp.extraVolumes | nindent 6 }}
       {{- end }}

@@ -1,0 +1,182 @@
+from contextlib import nullcontext
+from datetime import datetime, timezone
+from unittest.mock import Mock
+
+import pytest
+
+from georchestra_analytics_cli import ogc_aggregation
+
+
+class _Config:
+    def get_db_connection_string(self):
+        return "postgresql://unused"
+
+    def get_ogc_aggregation_batch_size(self):
+        return 100
+
+    def get_timezone(self):
+        return "America/Argentina/Buenos_Aires"
+
+
+def test_enqueue_ogc_buckets_uses_only_ogc_records():
+    session = Mock()
+    ogc_ts = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    ogc_aggregation.enqueue_ogc_buckets(
+        session,
+        [
+            {"ts": ogc_ts, "request_details": {"tags": ["ogc"]}},
+            {
+                "ts": datetime(2026, 1, 2, tzinfo=timezone.utc),
+                "request_details": {"tags": ["other"]},
+            },
+        ],
+        "America/Argentina/Buenos_Aires",
+    )
+
+    assert session.execute.call_count == 1
+    assert session.execute.call_args.args[1] == {
+        "timestamps": [ogc_ts],
+        "timezone": "America/Argentina/Buenos_Aires",
+    }
+    assert "ON CONFLICT" in str(session.execute.call_args.args[0])
+
+
+def test_enqueue_ogc_buckets_skips_non_ogc_records():
+    session = Mock()
+
+    ogc_aggregation.enqueue_ogc_buckets(
+        session,
+        [{"ts": datetime.now(timezone.utc), "request_details": None}],
+        "UTC",
+    )
+
+    session.execute.assert_not_called()
+
+
+def test_aggregate_empty_queue(monkeypatch):
+    connection = Mock()
+    empty_result = Mock()
+    empty_result.scalars.return_value = []
+    connection.execute.side_effect = [Mock(), empty_result]
+    engine = Mock()
+    engine.begin.return_value = nullcontext(connection)
+    monkeypatch.setattr(ogc_aggregation, "create_engine", Mock(return_value=engine))
+
+    result = ogc_aggregation.aggregate_queued_ogc_buckets(_Config())
+
+    assert result == ogc_aggregation.AggregationResult(processed_buckets=0)
+
+
+def test_aggregate_recomputes_all_grains(monkeypatch):
+    bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    daily_bucket = datetime(2025, 12, 31, 23, tzinfo=timezone.utc)
+    connection = Mock()
+    claimed_result = Mock()
+    claimed_result.scalars.return_value = [bucket]
+    connection.execute.side_effect = [Mock(), claimed_result, Mock(), Mock()]
+    engine = Mock()
+    engine.begin.return_value = nullcontext(connection)
+    hourly = Mock()
+    rollup = Mock(
+        side_effect=[[daily_bucket], [datetime(2025, 11, 30, 23, tzinfo=timezone.utc)]]
+    )
+    monkeypatch.setattr(ogc_aggregation, "create_engine", Mock(return_value=engine))
+    monkeypatch.setattr(ogc_aggregation, "_recompute_hourly", hourly)
+    monkeypatch.setattr(ogc_aggregation, "_recompute_rollup", rollup)
+
+    result = ogc_aggregation.aggregate_queued_ogc_buckets(_Config(), batch_size=5)
+
+    assert result == ogc_aggregation.AggregationResult(processed_buckets=1)
+    hourly.assert_called_once_with(
+        connection, [bucket], "America/Argentina/Buenos_Aires"
+    )
+    assert rollup.call_count == 2
+    assert rollup.call_args_list[1].args[-2] == [daily_bucket]
+    assert rollup.call_args_list[1].args[-1] == "America/Argentina/Buenos_Aires"
+    assert connection.execute.call_args_list[1].args[1] == {
+        "batch_size": 5,
+        "max_attempts": 3,
+    }
+
+
+def test_rollup_refuses_to_delete_history_when_source_is_incomplete():
+    hourly_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    daily_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    connection = Mock()
+    affected_result = Mock()
+    affected_result.scalars.return_value = [daily_bucket]
+    connection.execute.return_value = affected_result
+    connection.scalar.return_value = 2
+
+    with pytest.raises(RuntimeError, match="cannot preserve 2 existing historical rows"):
+        ogc_aggregation._recompute_rollup(
+            connection,
+            "ogc_summary_hourly_store",
+            "ogc_summary_daily_store",
+            "bucket_hourly",
+            "bucket_daily",
+            "1 day",
+            [hourly_bucket],
+            "UTC",
+        )
+
+    # Only the affected-bucket lookup ran; target DELETE/INSERT never ran.
+    assert connection.execute.call_count == 1
+
+
+def test_rollup_rebuilds_when_source_preserves_every_existing_row():
+    hourly_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    daily_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    connection = Mock()
+    affected_result = Mock()
+    affected_result.scalars.return_value = [daily_bucket]
+    connection.execute.return_value = affected_result
+    connection.scalar.return_value = 0
+
+    affected = ogc_aggregation._recompute_rollup(
+        connection,
+        "ogc_summary_hourly_store",
+        "ogc_summary_daily_store",
+        "bucket_hourly",
+        "bucket_daily",
+        "1 day",
+        [hourly_bucket],
+        "UTC",
+    )
+
+    assert affected == [daily_bucket]
+    assert connection.execute.call_count == 3
+    preservation_sql = str(connection.scalar.call_args.args[0])
+    rebuild_sql = str(connection.execute.call_args_list[2].args[0])
+    assert "bucket_hourly >=" in preservation_sql
+    assert "bucket_hourly <" in preservation_sql
+    assert "INTERVAL '26 hours'" in preservation_sql
+    assert "bucket_hourly >=" in rebuild_sql
+    assert "bucket_hourly <" in rebuild_sql
+
+
+def test_monthly_rollup_uses_indexable_safe_range():
+    daily_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    monthly_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    connection = Mock()
+    affected_result = Mock()
+    affected_result.scalars.return_value = [monthly_bucket]
+    connection.execute.return_value = affected_result
+    connection.scalar.return_value = 0
+
+    ogc_aggregation._recompute_rollup(
+        connection,
+        "ogc_summary_daily_store",
+        "ogc_summary_monthly_store",
+        "bucket_daily",
+        "bucket_monthly",
+        "1 month",
+        [daily_bucket],
+        "UTC",
+    )
+
+    preservation_sql = str(connection.scalar.call_args.args[0])
+    assert "bucket_daily >=" in preservation_sql
+    assert "bucket_daily <" in preservation_sql
+    assert "INTERVAL '32 days'" in preservation_sql

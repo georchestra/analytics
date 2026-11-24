@@ -49,6 +49,20 @@ def test_get_user_info():
         "roles": ["ROLE_SUPERUSER", "ROLE_MAPSTORE_ADMIN"]}
 
 
+def test_get_user_info_with_http_auth_username():
+    assert RegexLogParser._get_user_info("testadmin") == {"name": "testadmin"}
+
+
+def test_get_user_info_with_incomplete_structured_value_is_kept_as_username():
+    assert RegexLogParser._get_user_info("testadmin|PSC") == {
+        "name": "testadmin|PSC"
+    }
+
+
+def test_get_user_info_without_user():
+    assert RegexLogParser._get_user_info("") == {}
+
+
 def test_get_response_time():
     conf = load_config_from(config_file2)
     log_parser = RegexLogParser(conf)

@@ -78,6 +78,12 @@ nav:
           - technical_guides/configuration/timescaledb.md
           - technical_guides/configuration/analytics-cli.md
           - technical_guides/configuration/superset.md
+        - Database migrations:
+          - technical_guides/migrations/index.md
+          - Existing installations: technical_guides/migrations/existing-installations.md
+          - TimescaleDB upgrade: technical_guides/migrations/timescaledb-upgrade.md
+          - Validation and cutover: technical_guides/migrations/validation-and-cutover.md
+          - Rollback: technical_guides/migrations/rollback.md
         - technical_guides/troubleshooting.md
         - Advanced configurations:
           - technical_guides/advanced_configurations/index.md

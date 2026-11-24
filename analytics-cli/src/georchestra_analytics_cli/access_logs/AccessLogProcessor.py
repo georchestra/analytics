@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import asc, create_engine, desc, func, select
+from sqlalchemy import asc, create_engine, delete, func, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
@@ -26,6 +26,7 @@ from georchestra_analytics_cli.common.models import (
     OpentelemetryAccessLogRecord,
 )
 from georchestra_analytics_cli.config import Config, get_config
+from georchestra_analytics_cli.ogc_aggregation import enqueue_ogc_buckets
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,6 @@ class AccessLogProcessor:
 
         now = datetime.now(timezone.utc)
         with self.get_session() as session:
-            offset = 0
             count_rows_stmt = select(
                 func.count(OpentelemetryAccessLogRecord.span_id)
             ).where(OpentelemetryAccessLogRecord.timestamp < now)
@@ -71,45 +71,59 @@ class AccessLogProcessor:
                 f"Number accesslog records to process from the buffer table: {nb_lines}"
             )
 
-            while nb_lines > 0:
-                processed_log_records = list()
+        while True:
+            with self.get_session() as session:
                 try:
                     stmt = (
                         select(OpentelemetryAccessLogRecord)
+                        .where(OpentelemetryAccessLogRecord.timestamp < now)
                         .order_by(
-                            desc(OpentelemetryAccessLogRecord.timestamp),
+                            asc(OpentelemetryAccessLogRecord.timestamp),
                             asc(OpentelemetryAccessLogRecord.span_id),
                         )
-                        .slice(offset, offset + self.batch_size)
+                        .limit(self.batch_size)
+                        .with_for_update(skip_locked=True)
                     )
-                    for log in session.scalars(stmt):
-                        # logger.debug(log)
-                        processed_log_records.append(self.log_parser.parse(log))
+                    source_records = list(session.scalars(stmt))
+                    if not source_records:
+                        break
+
+                    processed_log_records = [
+                        self.log_parser.parse(log) for log in source_records
+                    ]
 
                     # Remove invalid records
                     processed_log_records = [
                         p for p in processed_log_records if p is not None
                     ]
                     if processed_log_records:
-                        self.upsert_log_records(session, processed_log_records)
-                    # prepare next loop iteration
-                    nb_lines -= self.batch_size
-                    offset += self.batch_size
-                except SQLAlchemyError as e:
-                    # For now, a commit error will lead to the loss of the full batch (see self.batch_size)
-                    logger.error(f"Error while processing the buffer table: {e}")
-                    session.rollback()
+                        self.upsert_log_records(
+                            session, processed_log_records, commit=False
+                        )
 
-            # Drop the processed lines from the buffer
-            try:
-                session.query(OpentelemetryAccessLogRecord).filter(
-                    OpentelemetryAccessLogRecord.timestamp < now
-                ).delete(synchronize_session=False)
-                session.commit()
-            except SQLAlchemyError as e:
-                # For now, a commit error will lead to the loss of the full batch (see self.batch_size)
-                logger.error(f"Error deleting files from the buffer table: {e}")
-                session.rollback()
+                    source_keys = [
+                        (record.timestamp, record.span_id) for record in source_records
+                    ]
+                    session.execute(
+                        delete(OpentelemetryAccessLogRecord).where(
+                            tuple_(
+                                OpentelemetryAccessLogRecord.timestamp,
+                                OpentelemetryAccessLogRecord.span_id,
+                            ).in_(source_keys)
+                        )
+                    )
+                    session.commit()
+                    nb_lines -= len(source_records)
+                    logger.debug(
+                        f"Successfully processed {len(source_records)} buffer records; "
+                        f"approximately {max(nb_lines, 0)} remain before the cutoff"
+                    )
+                except Exception:
+                    session.rollback()
+                    logger.exception(
+                        "Error processing buffer batch; source rows were retained"
+                    )
+                    raise
 
     def process_file_logs(self, log_file_path, extra_info: dict[str, Any] = None):
         """
@@ -163,7 +177,12 @@ class AccessLogProcessor:
             self.Session = sessionmaker(self.db_engine)
         return self.Session()
 
-    def upsert_log_records(self, session: Session, log_records: list[dict[str, Any]]):
+    def upsert_log_records(
+        self,
+        session: Session,
+        log_records: list[dict[str, Any]],
+        commit: bool = True,
+    ):
         """
         Performs a bulk "upsert" action (leverages the PostgreSQL ON UPDATE DO something clause)
         on a list of AccessLog records (provided as dicts).
@@ -175,7 +194,9 @@ class AccessLogProcessor:
         insert_stmt = insert(AccessLogRecord).values(log_records)
         insert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=["ts", "id"])
         session.execute(insert_stmt)
-        session.commit()
+        enqueue_ogc_buckets(session, log_records, self.config.get_timezone())
+        if commit:
+            session.commit()
 
     def fake_log_records(
         self, start_date: datetime, stop_time: datetime, max_rate: int
@@ -222,6 +243,7 @@ class AccessLogProcessor:
                                 f"Upserting {len(processed_log_records)} log records"
                             )
                             self.upsert_log_records(session, processed_log_records)
+                            processed_log_records = list()
                     logger.debug(
                         f"[{start.strftime('%m/%d/%Y, %H:%M %Z')} - {(start + timedelta(hours=1)).strftime('%m/%d/%Y, %H:%M %Z')}] Generated {nb_records} log records"
                     )

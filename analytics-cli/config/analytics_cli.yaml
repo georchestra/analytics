@@ -9,6 +9,8 @@ apps_mapping:
 performance:
   # Publish in DB by batches
   batch_size: 10000
+  # Maximum queued hourly buckets recomputed in one transaction.
+  ogc_aggregation_batch_size: 100
 
 # It is best to set this to your local timezone so that any time-related handling have the best chance to be handled  with proper time offsets.
 timezone: "Europe/Paris"
@@ -23,12 +25,18 @@ data_privacy:
 
 database:
   drivername: "postgresql"
-  host: "localhost"
-  port: "5433"
-  database: "analytics"
+  host: !ENV "${TSDB_HOST:localhost}"
+  port: !ENV "${TSDB_PORT:5433}"
+  database: !ENV "${TSDB_NAME:analytics}"
 #  schema: analytics
-  username: "tsdb"
-  password: !ENV "${GOA_DB_PASSWORD:secret}"
+  username: !ENV "${TSDB_USER:tsdb}"
+  password: !ENV "${TSDB_PASSWORD:secret}"
+  timescaledb:
+    # Applied to analytics.access_logs by `analytics-cli db sync-policies`.
+    chunk_interval: "7 days"
+    retention:
+      drop_after: "3 years"
+      schedule_interval: "1 week"
 
 parsers:
   opentelemetry:

@@ -101,6 +101,7 @@ class RegexLogParser(BaseLogParser):
             # If no app path is extracted and no app_id was provided, we consider the log record invalid
             return None
         hostname, path, qs, fragment = split_url(m_dict.get("path", ""))
+        user_info = self._get_user_info(m_dict.get("user", ""))
         log_dict = {
             "ts": ts.isoformat(),
             "id": self.generate_req_id(msg),
@@ -108,11 +109,11 @@ class RegexLogParser(BaseLogParser):
             "app_id": app_id,
             "app_path": app_path,
             "app_name": self.config.what_app_is_it(app_id),
-            "user_id": self._get_user_info(m_dict.get("user", "")).get("name"),
-            "user_name": self._get_user_info(m_dict.get("user", "")).get("name"),
-            "org_id": self._get_user_info(m_dict.get("user", "")).get("org"),
-            "org_name": self._get_user_info(m_dict.get("user", "")).get("org"),
-            "roles": self._get_user_info(m_dict.get("user", "")).get("roles"),
+            "user_id": user_info.get("name"),
+            "user_name": user_info.get("name"),
+            "org_id": user_info.get("org"),
+            "org_name": user_info.get("org"),
+            "roles": user_info.get("roles"),
             "auth_method": None,
             "request_method": m_dict.get("method", ""),
             "request_path": path,
@@ -160,22 +161,14 @@ class RegexLogParser(BaseLogParser):
         """
         if not user_string:
             return dict()
-        user_categories = ["name", "org", "roles"]
-        user_values = [None, None, None]
-        if user_string:
-            user_values = user_string.split("|")
-        if len(user_values) == 2:
-            user_info = {
+        user_values = user_string.split("|", maxsplit=2)
+        if len(user_values) == 3:
+            return {
                 "name": user_values[0],
                 "org": user_values[1],
-                "roles": user_values[2].split(","),
+                "roles": [role for role in user_values[2].split(",") if role],
             }
-        else:
-            user_info = { "name": user_values }
-        # user_info = dict(zip(user_categories, user_values))
-        # # Make roles a list
-        # user_info["roles"] = user_info["roles"].split(",")
-        return user_info
+        return {"name": user_string}
 
     def generate_req_id(self, msg):
         """

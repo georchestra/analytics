@@ -114,6 +114,32 @@ class Config:
     def get_timezone(self) -> str:
         return self.config.get("timezone", "UTC")
 
+    def get_timescaledb_chunk_interval(self) -> str:
+        return (
+            self.config.get("database", {})
+            .get("timescaledb", {})
+            .get("chunk_interval", "7 days")
+        )
+
+    def get_timescaledb_retention_drop_after(self) -> str:
+        return (
+            self.config.get("database", {})
+            .get("timescaledb", {})
+            .get("retention", {})
+            .get("drop_after", "3 years")
+        )
+
+    def get_timescaledb_retention_schedule_interval(self) -> str:
+        return (
+            self.config.get("database", {})
+            .get("timescaledb", {})
+            .get("retention", {})
+            .get("schedule_interval", "1 week")
+        )
+
+    def get_ogc_aggregation_batch_size(self) -> int:
+        return self.config.get("performance", {}).get("ogc_aggregation_batch_size", 100)
+
 
 def get_config(config_path: str | None = None) -> Config:
     global config
