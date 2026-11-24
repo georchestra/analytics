@@ -25,5 +25,10 @@ This applies `0002`, compares the legacy aggregates with the persistent stores,
 drains the incremental queue, applies the `0003` compatibility cutover, and
 synchronizes configured TimescaleDB policies.
 
+Revision `0002` deliberately queues recent raw OGC buckets after copying the
+legacy aggregates. This reconciles records that were committed to `access_logs`
+but had not yet been materialized by the legacy refresh policies. Revision
+`0003` refuses the cutover until that queue has been drained successfully.
+
 Do not run the migration while another process is writing analytics records.
 Pause ingestion and scheduled analytics jobs for the maintenance window.

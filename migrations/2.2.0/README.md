@@ -61,7 +61,8 @@ The script performs these operations in order:
 
 1. safely records baseline revision `0001` only when the database is still unversioned;
 2. applies revision `0002` and creates persistent hourly, daily, and monthly OGC stores;
-3. drains the incremental aggregation queue;
+3. drains the recent raw OGC buckets queued by `0002`, including records not yet
+   materialized by the legacy refresh policies;
 4. compares the legacy aggregates with the persistent stores;
 5. applies revision `0003` and exposes the persistent stores through the established names;
 6. synchronizes the configured TimescaleDB policies.

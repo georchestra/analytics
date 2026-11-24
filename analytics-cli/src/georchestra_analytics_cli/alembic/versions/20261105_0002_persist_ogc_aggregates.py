@@ -12,6 +12,7 @@ The application cutover is intentionally deferred to a later revision.
 from typing import Sequence, Union
 
 from alembic import op
+from sqlalchemy import text
 
 revision: str = "0002"
 down_revision: Union[str, None] = "0001"
@@ -163,6 +164,53 @@ def _validate_store(source: str, target: str, bucket: str) -> None:
     )
 
 
+def _queue_recent_raw_buckets() -> None:
+    """Reconcile raw logs that legacy refresh policies may not have materialized."""
+    app_config = op.get_context().config.attributes.get("app_config")
+    timezone_name = app_config.get_timezone() if app_config else "Europe/Paris"
+    op.get_bind().execute(
+        text(
+            """
+            WITH coverage AS (
+                SELECT min(bucket_hourly) AS first_bucket
+                FROM analytics.ogc_summary_hourly_store
+            ), bounds AS (
+                SELECT GREATEST(
+                    time_bucket(
+                        INTERVAL '1 month', max(logs.ts), :timezone
+                    ) - INTERVAL '1 month',
+                    CASE
+                        WHEN coverage.first_bucket IS NULL THEN '-infinity'::timestamptz
+                        WHEN coverage.first_bucket = time_bucket(
+                            INTERVAL '1 day', coverage.first_bucket, :timezone
+                        ) THEN coverage.first_bucket
+                        ELSE time_bucket(
+                            INTERVAL '1 day', coverage.first_bucket, :timezone
+                        ) + INTERVAL '1 day'
+                    END
+                ) AS reconcile_from
+                FROM analytics.access_logs logs
+                CROSS JOIN coverage
+                GROUP BY coverage.first_bucket
+            )
+            INSERT INTO analytics.ogc_aggregation_queue (bucket_hourly, queued_at)
+            SELECT DISTINCT
+                time_bucket(INTERVAL '1 hour', logs.ts, :timezone),
+                now()
+            FROM analytics.access_logs logs
+            CROSS JOIN bounds
+            WHERE logs.request_details -> 'tags' @> '["ogc"]'
+              AND time_bucket(INTERVAL '1 hour', logs.ts, :timezone)
+                  >= bounds.reconcile_from
+            ON CONFLICT (bucket_hourly) DO UPDATE
+                SET queued_at = EXCLUDED.queued_at,
+                    last_error = NULL
+            """
+        ),
+        {"timezone": timezone_name},
+    )
+
+
 def upgrade() -> None:
     op.execute(
         "SELECT pg_advisory_xact_lock(hashtext("
@@ -210,9 +258,7 @@ def upgrade() -> None:
     _seed_store("ogc_summary_daily", "ogc_summary_daily_store", "bucket_daily")
     _seed_store("ogc_summary_monthly", "ogc_summary_monthly_store", "bucket_monthly")
 
-    _validate_store(
-        "ogc_summary_hourly", "ogc_summary_hourly_store", "bucket_hourly"
-    )
+    _validate_store("ogc_summary_hourly", "ogc_summary_hourly_store", "bucket_hourly")
     _validate_store("ogc_summary_daily", "ogc_summary_daily_store", "bucket_daily")
     _validate_store(
         "ogc_summary_monthly", "ogc_summary_monthly_store", "bucket_monthly"
@@ -225,6 +271,8 @@ def upgrade() -> None:
             seeded_at
         ) VALUES (true, 1, now())
     """)
+
+    _queue_recent_raw_buckets()
 
 
 def downgrade() -> None:

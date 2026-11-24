@@ -32,6 +32,28 @@ docker exec "$name" pg_restore -U "$DB_USER" -d "$DB_NAME" \
     --no-owner --no-privileges --exit-on-error /tmp/fixture.dump
 psql_in "$name" -c "SELECT timescaledb_post_restore();"
 
+# Simulate an OGC row committed after the last legacy continuous-aggregate
+# refresh. Revision 0002 must discover its raw hourly bucket and reconcile it.
+psql_in "$name" -c "
+    INSERT INTO analytics.access_logs (
+        id, ts, message, app_id, app_path, app_name, ip, user_id, user_name,
+        org_id, org_name, roles, auth_method, request_method, request_path,
+        request_query_string, request_details, response_time, response_size,
+        status_code, client_ip, server_address, context_data
+    )
+    SELECT
+        id || '-after-legacy-refresh', ts + INTERVAL '10 minutes',
+        message || ' after legacy refresh', app_id, app_path, app_name, ip,
+        user_id, user_name, org_id, org_name, roles, auth_method,
+        request_method, request_path, request_query_string, request_details,
+        response_time, response_size, status_code, client_ip, server_address,
+        context_data
+    FROM analytics.access_logs
+    WHERE request_details -> 'tags' @> '[\"ogc\"]'
+    ORDER BY ts DESC
+    LIMIT 1;
+" >/dev/null
+
 unsafe=$(psql_in "$name" -Atc "
     SELECT count(*)
     FROM analytics.access_logs
@@ -63,6 +85,34 @@ installed=$(psql_in "$name" -Atc "SELECT extversion FROM pg_extension WHERE extn
 
 run_cli db bootstrap-existing --revision 0001
 run_cli db upgrade --revision 0002
+pending=$(psql_in "$name" -Atc "SELECT count(*) FROM analytics.ogc_aggregation_queue;")
+[ "$pending" -gt 0 ] || {
+    echo "Revision 0002 did not queue recent raw OGC buckets" >&2
+    exit 1
+}
+if run_cli db upgrade --revision 0003 >/dev/null 2>&1; then
+    echo "Revision 0003 accepted a non-empty reconciliation queue" >&2
+    exit 1
+fi
+revision=$(psql_in "$name" -Atc "SELECT version_num FROM analytics.alembic_version;")
+[ "$revision" = "0002" ] || {
+    echo "Failed cutover did not remain at revision 0002: $revision" >&2
+    exit 1
+}
+run_cli aggregate-ogc
+reconciled=$(psql_in "$name" -Atc "
+    SELECT
+        (SELECT sum(nb_req) FROM analytics.ogc_summary_hourly_store)
+            - (SELECT sum(nb_req) FROM analytics.ogc_summary_hourly) || '|' ||
+        (SELECT sum(nb_req) FROM analytics.ogc_summary_daily_store)
+            - (SELECT sum(nb_req) FROM analytics.ogc_summary_daily) || '|' ||
+        (SELECT sum(nb_req) FROM analytics.ogc_summary_monthly_store)
+            - (SELECT sum(nb_req) FROM analytics.ogc_summary_monthly);
+")
+[ "$reconciled" = "1|1|1" ] || {
+    echo "Recent unmaterialized OGC row was not reconciled: $reconciled" >&2
+    exit 1
+}
 run_cli legacy-ogc validate
 run_cli db upgrade --revision 0003
 

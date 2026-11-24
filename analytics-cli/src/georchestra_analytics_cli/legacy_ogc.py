@@ -12,6 +12,7 @@ DIMENSIONS = """
     server_address, workspaces, layers, service, request, tiled, is_download,
     download_format, user_agent_family, referrer
 """
+DIMENSION_COLUMNS = tuple(column.strip() for column in DIMENSIONS.split(","))
 VALUES = "nb_req, response_time_median, response_time_min, response_time_max"
 GRAINS = (
     ("hourly", "bucket_hourly"),
@@ -62,6 +63,10 @@ def _validate_with_connection(connection) -> LegacyValidation:
         source = _source_name(connection, grain)
         store = f"ogc_summary_{grain}_store"
         columns = f"{bucket}, {DIMENSIONS}, {VALUES}"
+        source_dimensions = ", ".join(
+            f"source.{column}" for column in DIMENSION_COLUMNS
+        )
+        store_dimensions = ", ".join(f"store.{column}" for column in DIMENSION_COLUMNS)
         row = (
             connection.execute(
                 text(
@@ -71,11 +76,39 @@ def _validate_with_connection(connection) -> LegacyValidation:
                     (SELECT count(*) FROM analytics.{store}) AS store_rows,
                     COALESCE((SELECT sum(nb_req) FROM analytics.{source}), 0) AS source_requests,
                     COALESCE((SELECT sum(nb_req) FROM analytics.{store}), 0) AS store_requests,
-                    (SELECT count(*) FROM (
-                        SELECT {columns} FROM analytics.{source}
-                        EXCEPT ALL
-                        SELECT {columns} FROM analytics.{store}
-                    ) missing) AS source_missing,
+                    (SELECT count(*)
+                     FROM analytics.{source} source
+                     WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM analytics.{store} store
+                        WHERE store.{bucket} = source.{bucket}
+                          AND ROW({store_dimensions}) IS NOT DISTINCT FROM
+                              ROW({source_dimensions})
+                          AND (
+                              (
+                                  store.nb_req > source.nb_req
+                                  AND (
+                                      source.response_time_min IS NULL
+                                      OR store.response_time_min <= source.response_time_min
+                                  )
+                                  AND (
+                                      source.response_time_max IS NULL
+                                      OR store.response_time_max >= source.response_time_max
+                                  )
+                              )
+                              OR ROW(
+                                  store.nb_req,
+                                  store.response_time_median,
+                                  store.response_time_min,
+                                  store.response_time_max
+                              ) IS NOT DISTINCT FROM ROW(
+                                  source.nb_req,
+                                  source.response_time_median,
+                                  source.response_time_min,
+                                  source.response_time_max
+                              )
+                          )
+                     )) AS source_missing,
                     (SELECT count(*) FROM (
                         SELECT {columns} FROM analytics.{store}
                         EXCEPT ALL
@@ -277,10 +310,7 @@ def drop_legacy_ogc(config: Config, confirmation: str) -> int:
                 )
             for grain in ("monthly", "daily", "hourly"):
                 connection.execute(
-                    text(
-                        f"DROP MATERIALIZED VIEW "
-                        f"analytics.ogc_summary_{grain}_legacy"
-                    )
+                    text(f"DROP MATERIALIZED VIEW analytics.ogc_summary_{grain}_legacy")
                 )
             connection.execute(
                 text(

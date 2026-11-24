@@ -20,21 +20,50 @@ DIMENSIONS = """
     download_format, user_agent_family, referrer
 """
 VALUES = "nb_req, response_time_median, response_time_min, response_time_max"
+DIMENSION_COLUMNS = tuple(column.strip() for column in DIMENSIONS.split(","))
 
 
 def _assert_source_is_preserved(source: str, target: str, bucket: str) -> None:
-    columns = f"{bucket}, {DIMENSIONS}, {VALUES}"
+    source_dimensions = ", ".join(f"source.{column}" for column in DIMENSION_COLUMNS)
+    target_dimensions = ", ".join(f"target.{column}" for column in DIMENSION_COLUMNS)
     op.execute(
         f"""
         DO $validation$
         DECLARE missing_rows bigint;
         BEGIN
             SELECT count(*) INTO missing_rows
-            FROM (
-                SELECT {columns} FROM analytics.{source}
-                EXCEPT ALL
-                SELECT {columns} FROM analytics.{target}
-            ) difference;
+            FROM analytics.{source} source
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM analytics.{target} target
+                WHERE target.{bucket} = source.{bucket}
+                  AND ROW({target_dimensions}) IS NOT DISTINCT FROM
+                      ROW({source_dimensions})
+                  AND (
+                      (
+                          target.nb_req > source.nb_req
+                          AND (
+                              source.response_time_min IS NULL
+                              OR target.response_time_min <= source.response_time_min
+                          )
+                          AND (
+                              source.response_time_max IS NULL
+                              OR target.response_time_max >= source.response_time_max
+                          )
+                      )
+                      OR ROW(
+                          target.nb_req,
+                          target.response_time_median,
+                          target.response_time_min,
+                          target.response_time_max
+                      ) IS NOT DISTINCT FROM ROW(
+                          source.nb_req,
+                          source.response_time_median,
+                          source.response_time_min,
+                          source.response_time_max
+                      )
+                  )
+            );
             IF missing_rows <> 0 THEN
                 RAISE EXCEPTION
                     'Cutover refused: % rows from {source} are absent or different in {target}',
