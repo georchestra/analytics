@@ -90,42 +90,42 @@ def buffer2db(cron: str | None):
     By default it runs once. Use --cron to run continuously.
     """
 
-    if cron:
-        _seconds_until_next_cron_run(cron, conf.get_timezone())
-
     try:
         while True:
-            with s.labels(command="buffer2db").time():
-                log_processor = AccessLogProcessor()
-                log_processor.process_buffer_table()
-                _drain_ogc_queue()
-
-                g.labels(command="buffer2db").set_to_current_time()
-
-            if conf.is_metrics_enabled():
-                write_prometheus_metrics(
-                    registry,
-                    conf.get_metrics_metrics_file_path(),
-                    conf.get_metrics_pushgateway_url(),
+            if cron:
+                sleep_seconds = _seconds_until_next_cron_run(
+                    cron,
+                    conf.get_timezone(),
                 )
+                module_logger.info(
+                    f"Next buffer2db run scheduled with cron '{cron}' "
+                    f"({conf.get_timezone()}) in {int(sleep_seconds)}s"
+                )
+                time.sleep(sleep_seconds)
+
+            try:
+                with s.labels(command="buffer2db").time():
+                    log_processor = AccessLogProcessor()
+                    log_processor.process_buffer_table()
+                    _drain_ogc_queue()
+
+                    g.labels(command="buffer2db").set_to_current_time()
+
+                if conf.is_metrics_enabled():
+                    write_prometheus_metrics(
+                        registry,
+                        conf.get_metrics_metrics_file_path(),
+                        conf.get_metrics_pushgateway_url(),
+                    )
+            except Exception:
+                module_logger.exception("buffer2db failed")
+                if not cron:
+                    raise
 
             if not cron:
                 break
-
-            sleep_seconds = _seconds_until_next_cron_run(
-                cron,
-                conf.get_timezone(),
-            )
-            module_logger.info(
-                f"Next buffer2db run scheduled with cron '{cron}' ({conf.get_timezone()}) in {int(sleep_seconds)}s"
-            )
-
-            time.sleep(sleep_seconds)
     except KeyboardInterrupt:
         module_logger.info("Interrupted stopping buffer2db")
-    except Exception:
-        module_logger.exception("buffer2db failed")
-        raise
 
 
 @cli.command()
