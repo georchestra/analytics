@@ -12,11 +12,25 @@ from georchestra_analytics_cli.config import Config
 
 logger = logging.getLogger(__name__)
 
-DIMENSIONS = """
-    app_id, app_name, user_name, org_name, request_method, status_code,
-    server_address, workspaces, layers, service, request, tiled, is_download,
-    download_format, user_agent_family, referrer
-"""
+DIMENSION_COLUMNS = (
+    "app_id",
+    "app_name",
+    "user_name",
+    "org_name",
+    "request_method",
+    "status_code",
+    "server_address",
+    "workspaces",
+    "layers",
+    "service",
+    "request",
+    "tiled",
+    "is_download",
+    "download_format",
+    "user_agent_family",
+    "referrer",
+)
+DIMENSIONS = ", ".join(DIMENSION_COLUMNS)
 
 
 @dataclass(frozen=True)
@@ -133,6 +147,49 @@ def _recompute_rollup(
             {"buckets": buckets, "timezone": timezone_name},
         ).scalars()
     )
+    rebuilt_dimensions = ", ".join(
+        f"rebuilt.{column}" for column in DIMENSION_COLUMNS
+    )
+    existing_dimensions = ", ".join(
+        f"existing.{column}" for column in DIMENSION_COLUMNS
+    )
+    missing_history = connection.scalar(
+        text(
+            f"""
+            WITH candidate AS (
+                SELECT
+                    time_bucket(
+                        INTERVAL '{interval}', {source_bucket}, :timezone
+                    ) AS {target_bucket},
+                    {DIMENSIONS},
+                    sum(nb_req) AS nb_req
+                FROM analytics.{source_table}
+                WHERE time_bucket(
+                    INTERVAL '{interval}', {source_bucket}, :timezone
+                ) = ANY(CAST(:buckets AS timestamptz[]))
+                GROUP BY {target_bucket}, {DIMENSIONS}
+            )
+            SELECT count(*)
+            FROM analytics.{target_table} existing
+            WHERE existing.{target_bucket} = ANY(CAST(:buckets AS timestamptz[]))
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM candidate rebuilt
+                  WHERE rebuilt.{target_bucket} = existing.{target_bucket}
+                    AND ROW({rebuilt_dimensions}) IS NOT DISTINCT FROM
+                        ROW({existing_dimensions})
+                    AND rebuilt.nb_req >= existing.nb_req
+              )
+        """
+        ),
+        {"buckets": affected, "timezone": timezone_name},
+    )
+    if missing_history:
+        raise RuntimeError(
+            f"refusing to rebuild {target_table}: "
+            f"the {source_table} retention window cannot preserve "
+            f"{missing_history} existing historical rows"
+        )
     connection.execute(
         text(
             f"""

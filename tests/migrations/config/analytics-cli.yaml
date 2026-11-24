@@ -9,6 +9,8 @@ database:
 metrics:
   enabled: false
 
+timezone: Europe/Paris
+
 logging:
   version: 1
   disable_existing_loggers: false

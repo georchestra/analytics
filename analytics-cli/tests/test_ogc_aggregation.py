@@ -2,6 +2,8 @@ from contextlib import nullcontext
 from datetime import datetime, timezone
 from unittest.mock import Mock
 
+import pytest
+
 from georchestra_analytics_cli import ogc_aggregation
 
 
@@ -93,3 +95,52 @@ def test_aggregate_recomputes_all_grains(monkeypatch):
     assert rollup.call_args_list[1].args[-2] == [daily_bucket]
     assert rollup.call_args_list[1].args[-1] == "America/Argentina/Buenos_Aires"
     assert connection.execute.call_args_list[1].args[1] == {"batch_size": 5}
+
+
+def test_rollup_refuses_to_delete_history_when_source_is_incomplete():
+    hourly_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    daily_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    connection = Mock()
+    affected_result = Mock()
+    affected_result.scalars.return_value = [daily_bucket]
+    connection.execute.return_value = affected_result
+    connection.scalar.return_value = 2
+
+    with pytest.raises(RuntimeError, match="cannot preserve 2 existing historical rows"):
+        ogc_aggregation._recompute_rollup(
+            connection,
+            "ogc_summary_hourly_store",
+            "ogc_summary_daily_store",
+            "bucket_hourly",
+            "bucket_daily",
+            "1 day",
+            [hourly_bucket],
+            "UTC",
+        )
+
+    # Only the affected-bucket lookup ran; target DELETE/INSERT never ran.
+    assert connection.execute.call_count == 1
+
+
+def test_rollup_rebuilds_when_source_preserves_every_existing_row():
+    hourly_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    daily_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    connection = Mock()
+    affected_result = Mock()
+    affected_result.scalars.return_value = [daily_bucket]
+    connection.execute.return_value = affected_result
+    connection.scalar.return_value = 0
+
+    affected = ogc_aggregation._recompute_rollup(
+        connection,
+        "ogc_summary_hourly_store",
+        "ogc_summary_daily_store",
+        "bucket_hourly",
+        "bucket_daily",
+        "1 day",
+        [hourly_bucket],
+        "UTC",
+    )
+
+    assert affected == [daily_bucket]
+    assert connection.execute.call_count == 3

@@ -153,4 +153,103 @@ restored=$(psql_in "$name" -Atc "
 
 run_cli db upgrade --revision 0003
 run_cli legacy-ogc validate
+
+# Simulate an hourly retention gap and ensure a late bucket cannot replace a
+# complete daily/monthly row with a partial rollup.
+rollup_case=$(psql_in "$name" -Atc "
+    WITH hourly AS (
+        SELECT DISTINCT
+            time_bucket(
+                INTERVAL '1 day', bucket_hourly, 'Europe/Paris'
+            ) AS bucket_daily,
+            bucket_hourly
+        FROM analytics.ogc_summary_hourly_store
+    )
+    SELECT bucket_daily || '|' || min(bucket_hourly) || '|' || max(bucket_hourly)
+    FROM hourly
+    GROUP BY bucket_daily
+    HAVING count(*) >= 2
+    ORDER BY bucket_daily
+    LIMIT 1;
+")
+[ -n "$rollup_case" ] || {
+    echo "Fixture has no daily bucket with multiple hourly buckets" >&2
+    exit 1
+}
+affected_day=$(printf '%s' "$rollup_case" | cut -d '|' -f 1)
+removed_hour=$(printf '%s' "$rollup_case" | cut -d '|' -f 2)
+queued_hour=$(printf '%s' "$rollup_case" | cut -d '|' -f 3)
+
+daily_before=$(psql_in "$name" -Atc "
+    SELECT md5(COALESCE(string_agg(
+        to_jsonb(snapshot)::text, '' ORDER BY to_jsonb(snapshot)::text
+    ), ''))
+    FROM (
+        SELECT * FROM analytics.ogc_summary_daily_store
+        WHERE bucket_daily = '$affected_day'::timestamptz
+    ) snapshot;
+")
+monthly_before=$(psql_in "$name" -Atc "
+    SELECT md5(COALESCE(string_agg(
+        to_jsonb(snapshot)::text, '' ORDER BY to_jsonb(snapshot)::text
+    ), ''))
+    FROM (
+        SELECT * FROM analytics.ogc_summary_monthly_store
+        WHERE bucket_monthly = time_bucket(
+            INTERVAL '1 month', '$affected_day'::timestamptz, 'Europe/Paris'
+        )
+    ) snapshot;
+")
+
+psql_in "$name" -c "
+    DELETE FROM analytics.ogc_summary_hourly_store
+    WHERE bucket_hourly = '$removed_hour'::timestamptz;
+    INSERT INTO analytics.ogc_aggregation_queue (bucket_hourly)
+    VALUES ('$queued_hour'::timestamptz)
+    ON CONFLICT (bucket_hourly) DO NOTHING;
+" >/dev/null
+
+if run_cli aggregate-ogc --batch-size 1 >/dev/null 2>&1; then
+    echo "Incomplete hourly history unexpectedly replaced a daily rollup" >&2
+    exit 1
+fi
+
+daily_after=$(psql_in "$name" -Atc "
+    SELECT md5(COALESCE(string_agg(
+        to_jsonb(snapshot)::text, '' ORDER BY to_jsonb(snapshot)::text
+    ), ''))
+    FROM (
+        SELECT * FROM analytics.ogc_summary_daily_store
+        WHERE bucket_daily = '$affected_day'::timestamptz
+    ) snapshot;
+")
+monthly_after=$(psql_in "$name" -Atc "
+    SELECT md5(COALESCE(string_agg(
+        to_jsonb(snapshot)::text, '' ORDER BY to_jsonb(snapshot)::text
+    ), ''))
+    FROM (
+        SELECT * FROM analytics.ogc_summary_monthly_store
+        WHERE bucket_monthly = time_bucket(
+            INTERVAL '1 month', '$affected_day'::timestamptz, 'Europe/Paris'
+        )
+    ) snapshot;
+")
+[ "$daily_before" = "$daily_after" ] || {
+    echo "Daily history changed after an unsafe partial rebuild" >&2
+    exit 1
+}
+[ "$monthly_before" = "$monthly_after" ] || {
+    echo "Monthly history changed after an unsafe partial rebuild" >&2
+    exit 1
+}
+failure_recorded=$(psql_in "$name" -Atc "
+    SELECT attempts > 0 AND last_error LIKE 'refusing to rebuild%'
+    FROM analytics.ogc_aggregation_queue
+    WHERE bucket_hourly = '$queued_hour'::timestamptz;
+")
+[ "$failure_recorded" = "t" ] || {
+    echo "Unsafe rollup failure was not recorded on the queue bucket" >&2
+    exit 1
+}
+
 echo "Existing TimescaleDB $source_version -> $target_version migration OK."
