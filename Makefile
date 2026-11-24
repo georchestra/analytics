@@ -1,6 +1,6 @@
 .PHONY: test-unit migration-fixtures verify-migration-fixtures test-helm-k3d \
 	test-migrations-fresh test-migrations-existing \
-	test-migrations-timescaledb-upgrade test-migrations-all
+	test-migrations-timescaledb-upgrade test-docker-compose test-migrations-all
 
 ANALYTICS_CLI ?= analytics-cli
 
@@ -22,7 +22,10 @@ test-migrations-existing:
 test-migrations-timescaledb-upgrade:
 	ANALYTICS_CLI=$(ANALYTICS_CLI) ./tests/migrations/scripts/test-existing.sh 2.26.1
 
-test-migrations-all: verify-migration-fixtures test-migrations-fresh \
+test-docker-compose:
+	./tests/migrations/scripts/test-docker-compose.sh
+
+test-migrations-all: verify-migration-fixtures test-docker-compose test-migrations-fresh \
 	test-migrations-existing test-migrations-timescaledb-upgrade
 
 test-helm-k3d:

@@ -70,6 +70,15 @@ The script performs these operations in order:
 The migration preserves the original continuous aggregates with a `_legacy`
 suffix. It does not remove TimescaleDB or the `analytics.access_logs` hypertable.
 
+## Docker Compose deployment
+
+The 2.2.0 Compose file retains the existing `timescaledb_home_data` volume and
+`/home/postgres/pgdata` mount path. Do not rename the volume during the upgrade:
+doing so creates a fresh database and bypasses migration of the existing data.
+Keep the PostgreSQL major version compatible with the physical volume, upgrade
+the TimescaleDB extension to the validated version, and then let
+`analytics-migrate` apply the Alembic revisions.
+
 ## Helm deployment
 
 New installations run Alembic automatically through the Helm migration Job.

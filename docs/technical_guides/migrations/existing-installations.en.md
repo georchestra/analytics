@@ -32,3 +32,25 @@ but had not yet been materialized by the legacy refresh policies. Revision
 
 Do not run the migration while another process is writing analytics records.
 Pause ingestion and scheduled analytics jobs for the maintenance window.
+
+## Docker Compose storage compatibility
+
+The Compose deployment deliberately retains the historical
+`timescaledb_home_data` and `timescaledb_home_log` volume keys and the HA image
+mount paths. `docker compose up` therefore reattaches the existing project
+volumes instead of creating an unrelated empty database volume.
+
+Before upgrading, verify the resolved project and volume names:
+
+```bash
+docker compose -f docker/docker-compose.analytics.yml \
+  --env-file docker/.envs-analytics config
+docker volume ls | grep timescaledb_home_data
+```
+
+Do not point a PostgreSQL image from a different major version at that physical
+volume. A major-version change requires a logical dump/restore or `pg_upgrade`
+performed by the database operator. After starting the compatible PostgreSQL
+major version, update and verify the TimescaleDB extension as described in the
+[TimescaleDB upgrade guide](timescaledb-upgrade.en.md), then run the Alembic
+migration workflow above.

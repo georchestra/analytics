@@ -1,6 +1,9 @@
 
 volumes:
-  timescaledb_data:
+  # Keep the historical Compose volume names and HA image paths. Renaming this
+  # volume during an upgrade would silently start PostgreSQL with an empty DB.
+  timescaledb_home_data:
+  timescaledb_home_log:
   
 services: 
 
@@ -65,7 +68,7 @@ services:
     restart: always
 
   timescaledb:
-    image: timescale/timescaledb:2.30.2-pg18
+    image: timescale/timescaledb-ha:pg18
     ports:
       - "${TSDB_PUBLISHED_PORT:-5433}:5432"
     env_file:
@@ -75,7 +78,8 @@ services:
 #      - POSTGRES_USER=tsdb
 #      - POSTGRES_PASSWORD=password
     volumes:
-      - timescaledb_data:/var/lib/postgresql
+      - timescaledb_home_data:/home/postgres/pgdata
+      - timescaledb_home_log:/home/postgres/pg_log
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
