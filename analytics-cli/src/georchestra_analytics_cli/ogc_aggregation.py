@@ -133,6 +133,9 @@ def _recompute_rollup(
     buckets: list[datetime],
     timezone_name: str,
 ) -> list[datetime]:
+    # The range is deliberately a safe superset of the local-calendar bucket.
+    # The time_bucket predicate below remains authoritative across DST changes.
+    range_padding = "26 hours" if interval == "1 day" else "32 days"
     affected = list(
         connection.execute(
             text(
@@ -164,7 +167,15 @@ def _recompute_rollup(
                     {DIMENSIONS},
                     sum(nb_req) AS nb_req
                 FROM analytics.{source_table}
-                WHERE time_bucket(
+                WHERE {source_bucket} >= (
+                    SELECT min(bucket)
+                    FROM unnest(CAST(:buckets AS timestamptz[])) AS q(bucket)
+                )
+                  AND {source_bucket} < (
+                    SELECT max(bucket) + INTERVAL '{range_padding}'
+                    FROM unnest(CAST(:buckets AS timestamptz[])) AS q(bucket)
+                )
+                  AND time_bucket(
                     INTERVAL '{interval}', {source_bucket}, :timezone
                 ) = ANY(CAST(:buckets AS timestamptz[]))
                 GROUP BY {target_bucket}, {DIMENSIONS}
@@ -214,7 +225,15 @@ def _recompute_rollup(
                 min(response_time_min),
                 max(response_time_max)
             FROM analytics.{source_table}
-            WHERE time_bucket(INTERVAL '{interval}', {source_bucket}, :timezone) = ANY(CAST(:buckets AS timestamptz[]))
+            WHERE {source_bucket} >= (
+                SELECT min(bucket)
+                FROM unnest(CAST(:buckets AS timestamptz[])) AS q(bucket)
+            )
+              AND {source_bucket} < (
+                SELECT max(bucket) + INTERVAL '{range_padding}'
+                FROM unnest(CAST(:buckets AS timestamptz[])) AS q(bucket)
+            )
+              AND time_bucket(INTERVAL '{interval}', {source_bucket}, :timezone) = ANY(CAST(:buckets AS timestamptz[]))
             GROUP BY {target_bucket}, {DIMENSIONS}
         """
         ),

@@ -144,3 +144,36 @@ def test_rollup_rebuilds_when_source_preserves_every_existing_row():
 
     assert affected == [daily_bucket]
     assert connection.execute.call_count == 3
+    preservation_sql = str(connection.scalar.call_args.args[0])
+    rebuild_sql = str(connection.execute.call_args_list[2].args[0])
+    assert "bucket_hourly >=" in preservation_sql
+    assert "bucket_hourly <" in preservation_sql
+    assert "INTERVAL '26 hours'" in preservation_sql
+    assert "bucket_hourly >=" in rebuild_sql
+    assert "bucket_hourly <" in rebuild_sql
+
+
+def test_monthly_rollup_uses_indexable_safe_range():
+    daily_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    monthly_bucket = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    connection = Mock()
+    affected_result = Mock()
+    affected_result.scalars.return_value = [monthly_bucket]
+    connection.execute.return_value = affected_result
+    connection.scalar.return_value = 0
+
+    ogc_aggregation._recompute_rollup(
+        connection,
+        "ogc_summary_daily_store",
+        "ogc_summary_monthly_store",
+        "bucket_daily",
+        "bucket_monthly",
+        "1 month",
+        [daily_bucket],
+        "UTC",
+    )
+
+    preservation_sql = str(connection.scalar.call_args.args[0])
+    assert "bucket_daily >=" in preservation_sql
+    assert "bucket_daily <" in preservation_sql
+    assert "INTERVAL '32 days'" in preservation_sql
